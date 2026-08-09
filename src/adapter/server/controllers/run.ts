@@ -9,10 +9,12 @@ import { refreshChecks } from "./shared.ts";
 // 網頁只送 action 名字。這裡對照每一格宣告的能力——不在能力清單裡的動作一律拒絕，
 // 網頁就沒辦法叫伺服器跑任意指令。
 function isDeclared(ctx: ServerContext, action: string): boolean {
-  return ctx.card.checks.some(
-    (check) =>
-      findCapability(check, "install")?.action === action ||
-      findCapability(check, "login")?.action === action,
+  return ctx.cards.some((card) =>
+    card.checks.some(
+      (check) =>
+        findCapability(check, "install")?.action === action ||
+        findCapability(check, "login")?.action === action,
+    ),
   );
 }
 

@@ -41,7 +41,8 @@ export type TerminalEntry =
     };
 
 export interface AppState {
-  readonly card: Card;
+  readonly cards: readonly Card[];
+  readonly activeIndex: number;
   // 語言是狀態的一部分，不是模組層級的全域值：切語言就是換一次 state，畫面照
   // 原本那條路重新推導出來，不需要任何「切完記得重畫」的規則。
   readonly locale: Locale;
@@ -87,6 +88,9 @@ export interface ChecklistModel {
 
 export interface CardViewModel {
   readonly title: string;
+  // 這一段總共幾張、現在第幾張。學生要知道自己走到哪。
+  readonly position: { readonly index: number; readonly total: number };
+  readonly hasNext: boolean;
   readonly logoId: string;
   readonly display: CardDisplayState;
   readonly badge: { readonly text: string; readonly tone: BadgeTone };
@@ -124,8 +128,22 @@ const TERMINAL_TONE: Readonly<Record<TerminalEntryKind, TerminalTone>> = {
   "done-fail": "err",
 };
 
+// 現在停在哪一張。沒有卡片時回一張空的——載入中的那半秒也要畫得出東西。
+export function activeCard(state: AppState): Card {
+  return (
+    state.cards[state.activeIndex] ?? {
+      id: "",
+      sectionId: "",
+      labelKey: K.card.checklistTitle,
+      checks: [],
+      capabilities: [],
+    }
+  );
+}
+
 export function cardModel(state: AppState): CardViewModel {
-  const { card, progress } = state;
+  const card = activeCard(state);
+  const { progress } = state;
   const t = (key: MessageKey): string => copy(state.locale, key);
   const display = cardDisplayState(card, progress);
   const rows = checklistRows(state);
@@ -135,6 +153,8 @@ export function cardModel(state: AppState): CardViewModel {
 
   return {
     title: t(card.labelKey),
+    position: { index: state.activeIndex + 1, total: state.cards.length },
+    hasNext: state.activeIndex + 1 < state.cards.length,
     logoId: "logo-claude",
     display,
     badge: { text: t(badge.key), tone: badge.tone },
@@ -176,7 +196,8 @@ export function cardModel(state: AppState): CardViewModel {
 
 // 程式判定的格與學生勾的格排在同一張清單裡，每一格帶著自己的按鈕。
 function checklistRows(state: AppState): ChecklistRow[] {
-  const { card, progress } = state;
+  const card = activeCard(state);
+  const { progress } = state;
   const t = (key: MessageKey): string => copy(state.locale, key);
 
   const system = card.checks.map((check): ChecklistRow => {

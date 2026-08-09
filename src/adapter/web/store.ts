@@ -13,6 +13,7 @@ export interface Store {
   runAction(action: string, checkId?: string, startKey?: MessageKey): Promise<void>;
   toggleEye(id: string, checked: boolean): Promise<void>;
   skip(): Promise<void>;
+  goNext(): Promise<void>;
   setLocale(locale: Locale): void;
 }
 
@@ -27,13 +28,10 @@ function loadLocale(): Locale {
 
 export function createStore(): Store {
   let state: AppState = {
-    card: {
-      id: "",
-      sectionId: "",
-      labelKey: K.card.checklistTitle,
-      checks: [],
-      capabilities: [],
-    },
+    cards: [],
+    // 現在停在哪一張。卡片走完一張換下一張——推導出來的話（「第一張沒完成的」）
+    // 學生按一下按鈕就會被丟回前面某張，前一代實測踩過。
+    activeIndex: 0,
     locale: loadLocale(),
     // 伺服器回報之前先當「其他」——寧可多顯示一條共通的，也不要錯把 mac 的
     // 步驟給 Windows 的學生看。
@@ -52,7 +50,7 @@ export function createStore(): Store {
   };
 
   const applyBody = (body: StateBody): void => {
-    set({ card: body.card, platform: body.platform, progress: hydrate(body.progress) });
+    set({ cards: body.cards, platform: body.platform, progress: hydrate(body.progress) });
   };
 
   // store 只記「發生了什麼」，不記顏色也不記翻好的字——兩者都是呈現決定。
@@ -104,7 +102,11 @@ export function createStore(): Store {
 
     async load() {
       applyBody(await api.state());
-      applyBody(await api.visit());
+      const first = state.cards[0];
+
+      if (first !== undefined) {
+        applyBody(await api.visit(first.id));
+      }
     },
 
     async runAction(action, checkId, startKey) {
@@ -139,7 +141,23 @@ export function createStore(): Store {
     },
 
     async skip() {
-      applyBody(await api.skip());
+      const card = state.cards[state.activeIndex];
+
+      if (card !== undefined) {
+        applyBody(await api.skip(card.id));
+      }
+    },
+
+    async goNext() {
+      const next = state.cards[state.activeIndex + 1];
+
+      if (next === undefined) {
+        return;
+      }
+
+      // 換卡先清終端：那幾行講的是上一張的事，留著只會讓學生以為現在這張跑過了。
+      set({ activeIndex: state.activeIndex + 1, terminal: [] });
+      applyBody(await api.visit(next.id));
     },
 
     // 切語言就只是換一次 state。畫面照原本那條路重新推導，終端裡已經印出來的

@@ -12,8 +12,8 @@ export async function setEyeCheck(
 ): Promise<void> {
   const body = await readJson(request);
   const id = readString(body, "id");
-  const declared = findCapabilities(ctx.card, "eye-check").some(
-    (capability) => capability.id === id,
+  const declared = ctx.cards.some((card) =>
+    findCapabilities(card, "eye-check").some((capability) => capability.id === id),
   );
 
   if (id === null || !declared) {
@@ -28,18 +28,34 @@ export async function setEyeCheck(
 
 export async function skipCard(
   ctx: ServerContext,
+  request: IncomingMessage,
   response: ServerResponse,
 ): Promise<void> {
-  ctx.store.skip(ctx.card.id);
+  const cardId = readString(await readJson(request), "cardId");
+
+  if (cardId === null || !ctx.cards.some((card) => card.id === cardId)) {
+    sendJson(response, 400, { error: "不認得的卡片" });
+    return;
+  }
+
+  ctx.store.skip(cardId);
   ctx.bus.publish({ type: "state", progress: ctx.store.wire() });
   sendJson(response, 200, stateBody(ctx));
 }
 
 export async function visitCard(
   ctx: ServerContext,
+  request: IncomingMessage,
   response: ServerResponse,
 ): Promise<void> {
-  ctx.store.visit(ctx.card.id);
+  const cardId = readString(await readJson(request), "cardId");
+
+  if (cardId === null || !ctx.cards.some((card) => card.id === cardId)) {
+    sendJson(response, 400, { error: "不認得的卡片" });
+    return;
+  }
+
+  ctx.store.visit(cardId);
   ctx.bus.publish({ type: "state", progress: ctx.store.wire() });
   sendJson(response, 200, stateBody(ctx));
 }

@@ -2,6 +2,7 @@ import { execFile } from "node:child_process";
 
 import type { CheckId, CheckStatus } from "../../domain/check.ts";
 import type { EnvProbe } from "../../usecase/ports.ts";
+import { checkAllowlist, checkHook } from "./config-check.ts";
 import type { FakeEnv } from "./fake-env.ts";
 
 // 每個 check 怎麼問「你在不在」。回 exit 0 就算結構齊全——行為有沒有生效是驗證那一
@@ -11,11 +12,23 @@ const PROBES: Readonly<Record<CheckId, { cmd: string; args: string[] }>> = {
   "claude-auth": { cmd: "claude", args: ["auth", "status"] },
 };
 
-export function createEnvProbe(fake: FakeEnv | null): EnvProbe {
+// 設定檔類的格子不是「有沒有這個指令」，而是「檔案內容對不對、註冊上去沒有」。
+const CONFIG_CHECKS: Readonly<
+  Record<CheckId, (materials: { root: string }) => Promise<CheckStatus>>
+> = {
+  hook: checkHook,
+  allowlist: checkAllowlist,
+};
+
+export function createEnvProbe(fake: FakeEnv | null, materialsRoot: string): EnvProbe {
   return {
     async probe(checkId) {
       if (fake !== null) {
         return fake.status(checkId);
+      }
+
+      if (Object.hasOwn(CONFIG_CHECKS, checkId)) {
+        return CONFIG_CHECKS[checkId]!({ root: materialsRoot });
       }
 
       const spec = Object.hasOwn(PROBES, checkId) ? PROBES[checkId] : undefined;

@@ -14,7 +14,7 @@ export interface WireProgress {
 }
 
 export interface StateBody {
-  card: Card;
+  cards: Card[];
   platform: Platform;
   progress: WireProgress;
 }
@@ -69,8 +69,8 @@ export const api = {
     return response.json();
   },
   eyeCheck: (id: string, checked: boolean) => post("/api/eye-check", { id, checked }),
-  skip: () => post("/api/skip") as Promise<StateBody>,
-  visit: () => post("/api/visit") as Promise<StateBody>,
+  skip: (cardId: string) => post("/api/skip", { cardId }) as Promise<StateBody>,
+  visit: (cardId: string) => post("/api/visit", { cardId }) as Promise<StateBody>,
 
   stream(onEvent: (event: ServerEvent) => void): () => void {
     const source = new EventSource("/api/stream");

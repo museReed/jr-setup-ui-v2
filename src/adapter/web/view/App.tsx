@@ -58,7 +58,17 @@ export function App({ store }: { store: Store }) {
         footer={
           <>
             <span class="advance-hint">{model.advanceHint}</span>
-            <Button disabled={!model.canAdvance}>{t(K.card.next)}</Button>
+            <span class="card-position">
+              {model.position.index} / {model.position.total}
+            </span>
+            {model.hasNext ? (
+              <Button
+                disabled={!model.canAdvance}
+                onClick={() => void store.goNext()}
+              >
+                {t(K.card.next)}
+              </Button>
+            ) : null}
             {/* 逆口不慶祝也不算完成——慶祝一件沒做成的事會讓學生以為自己過了。 */}
             {model.canSkip ? (
               <Button tone="success" onClick={() => void store.skip()}>

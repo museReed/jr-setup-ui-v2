@@ -6,6 +6,7 @@ import type {
   RunHandle,
 } from "../../usecase/ports.ts";
 import { findAction } from "./actions.ts";
+import { installAllowlist, installHook } from "./config-install.ts";
 import type { FakeEnv } from "./fake-env.ts";
 
 // 假環境下每個 action 演什麼，以及演完把哪一格改成什麼。真的去裝一次 CLI 要好幾
@@ -29,7 +30,19 @@ const FAKE_SCRIPTS: Readonly<
   },
 };
 
-export function createProcessRunner(fake: FakeEnv | null): ProcessRunner {
+// 設定檔類的動作不是「跑一條指令」，是改檔案。它們自己會吐事件出來，所以走
+// 這條而不是 spawn。
+const FILE_ACTIONS: Readonly<
+  Record<string, (materialsRoot: string) => AsyncGenerator<RunEvent>>
+> = {
+  "install-hook": installHook,
+  "install-allowlist": installAllowlist,
+};
+
+export function createProcessRunner(
+  fake: FakeEnv | null,
+  materialsRoot: string,
+): ProcessRunner {
   const children = new Map<string, ChildProcess>();
   let counter = 0;
 
@@ -37,6 +50,10 @@ export function createProcessRunner(fake: FakeEnv | null): ProcessRunner {
     start(action) {
       counter += 1;
       const runId = `run-${counter}`;
+
+      if (Object.hasOwn(FILE_ACTIONS, action)) {
+        return { runId, events: FILE_ACTIONS[action]!(materialsRoot) };
+      }
 
       return fake === null
         ? spawnReal(runId, action, children)

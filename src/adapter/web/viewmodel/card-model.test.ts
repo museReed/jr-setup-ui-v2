@@ -128,7 +128,8 @@ function appState(
   };
 
   return {
-    card: claudeCodeCard,
+    cards: [claudeCodeCard],
+    activeIndex: 0,
     locale: "zh-TW",
     platform: "mac",
     progress,

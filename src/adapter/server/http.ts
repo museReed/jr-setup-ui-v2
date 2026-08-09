@@ -27,8 +27,8 @@ const ROUTES: Readonly<Record<string, Handler>> = {
   "POST /api/cancel": cancelRun,
   "POST /api/verify": startVerify,
   "POST /api/eye-check": setEyeCheck,
-  "POST /api/skip": (ctx, _request, response) => skipCard(ctx, response),
-  "POST /api/visit": (ctx, _request, response) => visitCard(ctx, response),
+  "POST /api/skip": skipCard,
+  "POST /api/visit": visitCard,
 };
 
 const CONTENT_TYPES: Readonly<Record<string, string>> = {
