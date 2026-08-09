@@ -10,6 +10,7 @@ export {
   Checklist,
   type CheckItemProps,
   type ChecklistProps,
+  type VerifiedBy,
 } from "./Checklist.tsx";
 export { Logo, type LogoProps } from "./Logo.tsx";
 export {

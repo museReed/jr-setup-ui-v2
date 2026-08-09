@@ -51,6 +51,17 @@ export const api = {
   input: (runId: string, text: string) => post("/api/input", { runId, text }),
   cancel: (runId: string) => post("/api/cancel", { runId }),
   verify: (checkId: string) => post("/api/verify", { checkId }),
+
+  // 按下去才抓——開頁就把十幾份教學全載進來，學生九成看不到。
+  async walkthrough(id: string): Promise<unknown> {
+    const response = await fetch(`/api/walkthrough/${id}`);
+
+    if (!response.ok) {
+      throw new Error(`找不到教學 ${id}`);
+    }
+
+    return response.json();
+  },
   eyeCheck: (id: string, checked: boolean) => post("/api/eye-check", { id, checked }),
   skip: () => post("/api/skip") as Promise<StateBody>,
   visit: () => post("/api/visit") as Promise<StateBody>,

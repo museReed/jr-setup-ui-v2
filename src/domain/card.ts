@@ -7,7 +7,9 @@ export type Capability =
   | { kind: "install"; action: string }
   | { kind: "verify"; via: "auto" | "terminal"; action: string }
   | { kind: "login"; action: string }
-  | { kind: "eye-check"; id: string; prompt: string }
+  // walkthrough：這一格有沒有編過「怎麼做」的教學。明寫在卡片定義裡而不是靠 id
+  // 對應猜——沒編過的格子不該畫按鈕，按出一個空彈窗比沒有按鈕更讓人困惑。
+  | { kind: "eye-check"; id: string; prompt: string; walkthrough?: string }
   | { kind: "recheck" };
 
 // 一張卡上的一格。

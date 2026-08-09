@@ -10,7 +10,12 @@ import {
   isComplete,
 } from "../../../domain/progress.ts";
 import type { BadgeTone } from "../view/ds/Card.tsx";
-import type { ButtonTone, TerminalLine, TerminalTone } from "../view/ds/index.ts";
+import type {
+  ButtonTone,
+  TerminalLine,
+  TerminalTone,
+  VerifiedBy,
+} from "../view/ds/index.ts";
 
 // 終端裡的一行「發生了什麼」。store 只記語意，顏色是呈現決定，留給 ViewModel。
 export type TerminalEntryKind = "output" | "error" | "note" | "done-ok" | "done-fail";
@@ -42,6 +47,11 @@ export interface ChecklistRow {
   readonly hint: string;
   readonly checked: boolean;
   readonly readOnly: boolean;
+  // 誰負責驗這一格。顏色語彙靠它：青＝系統自己驗、橘＝要你自己看。
+  readonly verifiedBy: VerifiedBy;
+  // 這一格有沒有編過「怎麼做」。沒編過的不畫按鈕——按出一個空彈窗比沒有按鈕
+  // 更讓人困惑。
+  readonly walkthroughId: string | undefined;
   // 這一格自己的按鈕。掛在格內而不是卡片底下——學生才不用自己配對哪顆帶他做哪一格。
   readonly buttons: readonly ButtonModel[];
 }
@@ -136,6 +146,8 @@ function checklistRows(state: AppState): ChecklistRow[] {
       hint: STATUS_HINT[status],
       checked: status === "ok",
       readOnly: true,
+      verifiedBy: "system",
+      walkthroughId: undefined,
       buttons: rowButtons(check, state),
     };
   });
@@ -147,6 +159,8 @@ function checklistRows(state: AppState): ChecklistRow[] {
       hint: "這一格程式看不到，只有你看得到",
       checked: progress.eyeChecked.has(capability.id),
       readOnly: false,
+      verifiedBy: "manual",
+      walkthroughId: capability.walkthrough,
       buttons: [],
     }),
   );

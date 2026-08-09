@@ -26,6 +26,7 @@ export const claudeCodeCard: Card = {
       kind: "eye-check",
       id: "eye-claude-fullscreen",
       prompt: "第一次跑起來時，畫面問你要用哪種顯示模式——選好了就勾這格",
+      walkthrough: "fullscreen-copy",
     },
     { kind: "recheck" },
   ],

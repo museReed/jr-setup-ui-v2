@@ -13,9 +13,14 @@ import type { ComponentChildren } from "preact";
 //      path 的 d 沿用前一代：M5 12.5 10 17l9-10
 const TICK_PATH = "M5 12.5 10 17l9-10";
 
+// 誰負責驗這一格。這不是裝飾——導覽裡明講「青色＝系統自己驗、橘色＝要你自己看」，
+// 顏色要一直成立才有用。
+export type VerifiedBy = "system" | "manual";
+
 export interface CheckItemProps {
   checked: boolean;
   children: ComponentChildren;
+  verifiedBy: VerifiedBy;
   hint?: ComponentChildren;
   // 程式判定的那幾格：學生看得到狀態，但不能自己勾。
   // 「能自動判定的就自動判定，勾選欄位越少，學生越不會一排全勾。」
@@ -23,15 +28,19 @@ export interface CheckItemProps {
   // 這一格自己的動作。掛在格內而不是卡片底下——留在外面的話，學生仍然要自己配對
   // 哪顆按鈕帶他做哪一格。
   actions?: ComponentChildren;
-  onChange?: (checked: boolean) => void;
+  // 有編過教學才給這顆。沒有的話不畫——按出一個空彈窗比沒有按鈕更讓人困惑。
+  onHelp?: (() => void) | undefined;
+  onChange?: ((checked: boolean) => void) | undefined;
 }
 
 export function CheckItem({
   checked,
   children,
+  verifiedBy,
   hint,
   readOnly = false,
   actions,
+  onHelp,
   onChange,
 }: CheckItemProps) {
   return (
@@ -39,8 +48,9 @@ export function CheckItem({
     // 所以 label 只包到文字為止，動作排在它旁邊。
     <div class="check-row">
       {/* 唯讀不需要額外的 class：DS 的 glitch 變體已經有
-          `.ds-check:has(input:disabled){cursor:not-allowed}`。自己再加一條只會分岔。 */}
-      <label class="ds-check">
+          `.ds-check:has(input:disabled){cursor:not-allowed}`。自己再加一條只會分岔。
+          is-system / is-manual 只用來重新指向顏色 token，不覆寫任何 ds-* 規則。 */}
+      <label class={verifiedBy === "manual" ? "ds-check is-manual" : "ds-check is-system"}>
         <input
           type="checkbox"
           checked={checked}
@@ -54,10 +64,28 @@ export function CheckItem({
         </span>
         <span class="ds-check-text">
           {children}
-          {hint === undefined ? null : <small>{hint}</small>}
+          {/* 說明文字掛自己的 class：DS 把勾選後的 small 寫死成青色（不吃 --gl-ink），
+              橘的那幾格會變成「標題橘、底下那句青」——兩種顏色本來就是用來分「誰負責
+              驗」的，混在同一格裡就沒有意義了。 */}
+          {hint === undefined ? null : <small class="check-detail">{hint}</small>}
         </span>
       </label>
-      {actions === undefined ? null : <div class="check-row-actions">{actions}</div>}
+      {actions === undefined && onHelp === undefined ? null : (
+        <div class="check-row-actions">
+          {actions}
+          {onHelp === undefined ? null : (
+            <button
+              type="button"
+              class="check-help"
+              aria-label="怎麼做"
+              title="怎麼做"
+              onClick={onHelp}
+            >
+              ?
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

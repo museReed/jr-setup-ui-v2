@@ -77,6 +77,30 @@ body {
   border-color: transparent;
 }
 
+/* 顏色語彙：青＝系統自己驗、橘＝要你自己看 ------------------------------
+   這是導覽裡講的判準，顏色要一直成立才有用。
+
+   ⚠️ 兩處都是「重新指向 token 的值」，不是覆寫 DS 的規則——契約檔禁止覆寫既有
+   ds-* selector，這樣繞開它。 */
+
+/* 系統驗的那幾格一律 disabled（學生點不動），而 DS 最尾端那兩條 `input:disabled`
+   規則把方框與文字刷成 --color-text-faint，把青色蓋掉了。手動項沒有 disabled，
+   它的橘從一開始就在——兩組行為不對稱，未通過的系統項會看起來像壞掉的灰格子。
+   在這個 scope 內把 --color-text-faint 指向青色，那兩條規則照跑，只是刷出來的
+   顏色變了。 */
+.ds-check.is-system {
+  --color-text-faint: var(--color-success);
+}
+
+.ds-check.is-manual {
+  --gl-ink: var(--color-accent);
+}
+
+/* orange-3 比 accent（orange-4）淡一階，暗底上讀得清楚又不會跟標題搶。 */
+.ds-check.is-manual .check-detail {
+  color: var(--orange-3);
+}
+
 /* 每一格自己的按鈕排在該格右側。
    ⚠️ 分隔線要搬到 .check-row 上：留在 .ds-check 身上的話，線只畫到文字那半的寬度，
    右邊按鈕那一塊會缺一角。 */
@@ -128,6 +152,162 @@ body {
   flex: 1;
   font-size: var(--fs-sm);
   color: var(--color-text-muted);
+}
+
+/* 「怎麼做」那顆與它的彈窗 ---------------------------------------------- */
+
+.check-help {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid var(--gl-ink, var(--color-border));
+  background: transparent;
+  color: var(--gl-ink, var(--color-text-muted));
+  font-family: var(--font-sans);
+  font-size: var(--fs-sm);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.wt-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: var(--space-5);
+  background: rgba(24, 22, 20, 0.55);
+}
+
+.wt-panel {
+  width: min(680px, 100%);
+  max-height: 84vh;
+  overflow-y: auto;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+.wt-head {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  background: var(--color-bg-elevated);
+  border-bottom: 1px solid var(--color-border-soft);
+}
+
+.wt-head strong {
+  flex: 1;
+  color: var(--color-text-strong);
+}
+
+.wt-close {
+  border: 0;
+  background: transparent;
+  font-size: var(--fs-lg);
+  line-height: 1;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.wt-steps {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-4) var(--space-5) var(--space-5);
+  display: grid;
+  gap: var(--space-5);
+}
+
+.wt-step-head {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+.wt-num {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: var(--neutral-1);
+  font-size: var(--fs-xs);
+  display: grid;
+  place-items: center;
+}
+
+.wt-title {
+  font-weight: 600;
+  color: var(--color-text-strong);
+}
+
+.wt-detail {
+  margin: 4px 0 0;
+  font-size: var(--fs-sm);
+  color: var(--color-text-muted);
+}
+
+.wt-visual {
+  margin: var(--space-3) 0 0 calc(24px + var(--space-3));
+}
+
+.wt-visual figcaption {
+  margin-top: 4px;
+  font-size: var(--fs-xs);
+  color: var(--color-text-faint);
+}
+
+.wt-kid {
+  margin: var(--space-2) 0 0 calc(24px + var(--space-3));
+  border-left: 2px solid var(--color-border-soft);
+  padding-left: var(--space-3);
+}
+
+.wt-kid--warn {
+  border-left-color: var(--color-accent);
+}
+
+.wt-kid-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.wt-kid-tag {
+  flex: 0 0 auto;
+  font-size: var(--fs-xs);
+  padding: 1px 7px;
+  border-radius: var(--r-pill);
+  background: var(--color-bg-inset);
+  color: var(--color-text-muted);
+}
+
+.wt-kid--warn .wt-kid-tag {
+  background: var(--orange-1);
+  color: var(--orange-6);
+}
+
+.wt-kid-caret {
+  margin-left: auto;
+  color: var(--color-text-faint);
+}
+
+.wt-kid-body {
+  padding: var(--space-2) 0 var(--space-3);
 }
 
 /* 終端 ----------------------------------------------------------------- */

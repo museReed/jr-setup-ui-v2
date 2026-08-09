@@ -7,6 +7,7 @@ import { cancelRun, sendRunInput, startRun } from "./controllers/run.ts";
 import { setEyeCheck, skipCard, visitCard } from "./controllers/progress.ts";
 import { getState, recheck } from "./controllers/state.ts";
 import { startVerify } from "./controllers/verify.ts";
+import { getWalkthrough } from "./controllers/walkthrough.ts";
 import { refreshChecks } from "./controllers/shared.ts";
 import { sendJson } from "./respond.ts";
 
@@ -64,6 +65,11 @@ async function handle(
 
   if (request.method === "GET" && url.pathname === "/api/stream") {
     ctx.bus.subscribe(response);
+    return;
+  }
+
+  if (request.method === "GET" && url.pathname.startsWith("/api/walkthrough/")) {
+    await getWalkthrough(ctx, url.pathname.slice("/api/walkthrough/".length), response);
     return;
   }
 
