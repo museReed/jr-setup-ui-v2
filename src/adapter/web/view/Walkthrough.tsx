@@ -2,6 +2,13 @@ import { useState } from "preact/hooks";
 
 import { copy, type Locale } from "../../../copy/index.ts";
 import { K, type MessageKey } from "../../../domain/copy-keys.ts";
+import type { Platform } from "../../../domain/platform.ts";
+import {
+  walkthroughForPlatform,
+  type WalkthroughDoc,
+  type WalkthroughKid,
+  type WalkthroughStep,
+} from "../viewmodel/walkthrough-model.ts";
 import { renderMock, type MockVisual } from "./mocks.ts";
 
 // 「怎麼做」彈窗。
@@ -9,29 +16,8 @@ import { renderMock, type MockVisual } from "./mocks.ts";
 // 主節點一律是「你要做」——只看主節點就走得完整件事，所以主節點沒有 kind。
 // kids 是那個動作的附註：see 會看到 / warn 別做 / miss 沒發生的話。點了才展開，
 // 不然一次攤十幾條，學生會直接放棄。
-export interface WalkthroughKid {
-  id: string;
-  kind: "see" | "warn" | "miss";
-  title: string;
-  // 一句一行。內容檔常常是陣列——當成單一字串渲染的話兩句會黏在一起。
-  detail?: string | string[];
-  visual?: MockVisual | null;
-}
-
-export interface WalkthroughStep {
-  id: string;
-  title: string;
-  detail?: string | string[];
-  visual?: MockVisual | null;
-  kids?: WalkthroughKid[];
-}
-
-export interface WalkthroughDoc {
-  id: string;
-  card?: string;
-  row?: string;
-  steps: WalkthroughStep[];
-}
+// 形狀與平台過濾住在 viewmodel（純函式，Node 裡測得動）；這裡只負責畫。
+export type { WalkthroughDoc } from "../viewmodel/walkthrough-model.ts";
 
 const KID_KEY: Readonly<Record<WalkthroughKid["kind"], MessageKey>> = {
   see: K.walkthrough.see,
@@ -42,13 +28,17 @@ const KID_KEY: Readonly<Record<WalkthroughKid["kind"], MessageKey>> = {
 export function Walkthrough({
   doc,
   locale,
+  platform,
   onClose,
 }: {
   doc: WalkthroughDoc;
   locale: Locale;
+  platform: Platform;
   onClose: () => void;
 }) {
   const t = (key: MessageKey): string => copy(locale, key);
+  // 不是給這台機器看的就不顯示——兩條都畫的話，學生要自己判斷哪條是給他的。
+  const shown = walkthroughForPlatform(doc, platform);
   return (
     <div class="wt-overlay" onClick={onClose}>
       <section
@@ -70,7 +60,7 @@ export function Walkthrough({
           </button>
         </header>
         <ol class="wt-steps">
-          {doc.steps.map((step, index) => (
+          {shown.steps.map((step, index) => (
             <Step key={step.id} step={step} index={index + 1} locale={locale} />
           ))}
         </ol>
@@ -99,7 +89,7 @@ function Step({
           <Detail detail={step.detail} />
         </div>
       </div>
-      <Visual visual={step.visual} />
+      <Visual visual={step.visual} locale={locale} />
       {kids.map((kid) => (
         <Kid key={kid.id} kid={kid} locale={locale} />
       ))}
@@ -120,7 +110,7 @@ function Kid({ kid, locale }: { kid: WalkthroughKid; locale: Locale }) {
       {open ? (
         <div class="wt-kid-body">
           <Detail detail={kid.detail} />
-          <Visual visual={kid.visual} />
+          <Visual visual={kid.visual} locale={locale} />
         </div>
       ) : null}
     </div>
@@ -143,8 +133,16 @@ function Detail({ detail }: { detail: string | string[] | undefined }) {
   );
 }
 
-function Visual({ visual }: { visual: MockVisual | null | undefined }) {
-  if (visual === null || visual === undefined || visual.type !== "mock") {
+function Visual({
+  visual,
+  locale,
+}: {
+  visual: unknown;
+  locale: Locale;
+}) {
+  const mock = visual as MockVisual | null | undefined;
+
+  if (mock === null || mock === undefined || mock.type !== "mock") {
     return null;
   }
 
@@ -152,10 +150,8 @@ function Visual({ visual }: { visual: MockVisual | null | undefined }) {
     <figure class="wt-visual">
       {/* mocks 只回字串、不碰 DOM，這樣嚮導與編輯器共用同一份。內容是我們自己
           repo 裡的 JSON，不是使用者輸入；renderMock 也對每個欄位做過跳脫。 */}
-      <div dangerouslySetInnerHTML={{ __html: renderMock(visual) }} />
-      {visual.caption === undefined ? null : (
-        <figcaption>{visual.caption}</figcaption>
-      )}
+      <div dangerouslySetInnerHTML={{ __html: renderMock(mock, locale) }} />
+      {mock.caption === undefined ? null : <figcaption>{mock.caption}</figcaption>}
     </figure>
   );
 }

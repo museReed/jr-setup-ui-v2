@@ -100,12 +100,21 @@ export function App({ store }: { store: Store }) {
         title={t(K.terminal.title)}
         lines={model.terminalLines}
         emptyHint={t(K.terminal.empty)}
+        raw={{
+          text: model.rawOutput,
+          summaryLabel: t(K.terminal.rawSummary),
+          emptyLabel: t(K.terminal.rawEmpty),
+          copyLabel: t(K.terminal.copy),
+          copiedLabel: t(K.terminal.copied),
+          onCopy: () => void navigator.clipboard.writeText(model.rawOutput),
+        }}
       />
 
       {walkthrough === null ? null : (
         <Walkthrough
           doc={walkthrough}
           locale={state.locale}
+          platform={state.platform}
           onClose={() => setWalkthrough(null)}
         />
       )}

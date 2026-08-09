@@ -16,5 +16,5 @@ export async function refreshChecks(ctx: ServerContext): Promise<void> {
 }
 
 export function stateBody(ctx: ServerContext): unknown {
-  return { card: ctx.card, progress: ctx.store.wire() };
+  return { card: ctx.card, platform: ctx.platform, progress: ctx.store.wire() };
 }

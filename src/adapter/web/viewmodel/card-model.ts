@@ -3,6 +3,7 @@ import { findCapabilities, findCapability } from "../../../domain/card.ts";
 import type { CheckStatus } from "../../../domain/check.ts";
 import { K, type MessageKey } from "../../../domain/copy-keys.ts";
 import { copy, type Locale } from "../../../copy/index.ts";
+import type { Platform } from "../../../domain/platform.ts";
 import type { CardDisplayState, ProgressState } from "../../../domain/progress.ts";
 import {
   canAdvance,
@@ -38,6 +39,8 @@ export interface AppState {
   // 語言是狀態的一部分，不是模組層級的全域值：切語言就是換一次 state，畫面照
   // 原本那條路重新推導出來，不需要任何「切完記得重畫」的規則。
   readonly locale: Locale;
+  // 這台機器是什麼。教學內容的平台過濾靠它（見 walkthrough-model）。
+  readonly platform: Platform;
   readonly progress: ProgressState;
   readonly terminal: readonly TerminalEntry[];
   readonly runningAction: string | null;
@@ -82,7 +85,10 @@ export interface CardViewModel {
   readonly checklist: ChecklistModel;
   // 卡片級的按鈕只剩「再 check 一次」——它真的作用在整張卡上。
   readonly cardButtons: readonly ButtonModel[];
+  // 白話進度：回答「現在正在做什麼」。
   readonly terminalLines: readonly TerminalLine[];
+  // 指令原封不動吐出來的東西。跟上面分開——npm 那幾十行雜訊會把白話進度淹掉。
+  readonly rawOutput: string;
   readonly canAdvance: boolean;
   readonly canSkip: boolean;
   readonly advanceHint: string;
@@ -141,12 +147,16 @@ export function cardModel(state: AppState): CardViewModel {
               disabled: state.runningAction !== null,
             },
           ],
-    terminalLines: state.terminal.map(
-      (entry): TerminalLine => ({
-        text: entry.source === "output" ? entry.text : t(entry.messageKey),
+    terminalLines: state.terminal
+      .filter((entry) => entry.source === "notice")
+      .map((entry): TerminalLine => ({
+        text: t(entry.messageKey),
         tone: TERMINAL_TONE[entry.kind],
-      }),
-    ),
+      })),
+    rawOutput: state.terminal
+      .filter((entry) => entry.source === "output")
+      .map((entry) => entry.text)
+      .join("\n"),
     canAdvance: advance,
     canSkip: canSkip(card, progress),
     advanceHint: t(

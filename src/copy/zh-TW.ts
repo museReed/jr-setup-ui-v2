@@ -45,6 +45,19 @@ export const zhTW: Record<MessageKey, string> = {
   "terminal.title": "現在正在做什麼",
   "terminal.empty": "按上面的按鈕，這裡會即時顯示進度。",
 
+  "mock.unknown": "認不得的畫面類型：",
+  "mock.which-button": "（哪顆按鈕）",
+  "mock.which-row": "（哪一列）",
+  "mock.which-step": "（哪一步）",
+  "mock.which-step-item": "（那一步底下的項目）",
+  "mock.which-title": "（標題）",
+  "mock.terminal-app": "終端機",
+
+  "terminal.raw-summary": "看原始輸出",
+  "terminal.raw-empty": "還沒有任何指令跑過。",
+  "terminal.copy": "複製",
+  "terminal.copied": "已複製",
+
   "walkthrough.title": "怎麼做",
   "walkthrough.close": "關閉",
   "walkthrough.see": "會看到",

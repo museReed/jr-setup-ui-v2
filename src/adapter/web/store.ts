@@ -35,6 +35,9 @@ export function createStore(): Store {
       capabilities: [],
     },
     locale: loadLocale(),
+    // 伺服器回報之前先當「其他」——寧可多顯示一條共通的，也不要錯把 mac 的
+    // 步驟給 Windows 的學生看。
+    platform: "other",
     progress: emptyProgress(),
     terminal: [],
     runningAction: null,
@@ -47,7 +50,7 @@ export function createStore(): Store {
   };
 
   const applyBody = (body: StateBody): void => {
-    set({ card: body.card, progress: hydrate(body.progress) });
+    set({ card: body.card, platform: body.platform, progress: hydrate(body.progress) });
   };
 
   // store 只記「發生了什麼」，不記顏色也不記翻好的字——兩者都是呈現決定。

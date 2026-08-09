@@ -1,4 +1,5 @@
 import type { Card } from "../../domain/card.ts";
+import type { Platform } from "../../domain/platform.ts";
 import { claudeCodeCard } from "../../domain/catalog.ts";
 import type {
   Clock,
@@ -24,6 +25,8 @@ export interface ServerContext {
   // 「怎麼做」那些 JSON 的所在。路徑從外面帶進來，這一層不自己算——算路徑要知道
   // 自己被裝在哪，那是 main 的事。
   readonly contentRoot: string;
+  // 這台機器實際是什麼。教學內容的 only: "mac"/"win" 靠它過濾。
+  readonly platform: Platform;
 }
 
 // 所有「碰得到外面世界」的東西在這裡一次接好。usecase 與 domain 只認介面，
@@ -44,5 +47,7 @@ export function createServerContext(contentRoot: string): ServerContext {
     bus: createEventBus(),
     clock: { now: () => Date.now() },
     contentRoot,
+    platform:
+      process.platform === "darwin" ? "mac" : process.platform === "win32" ? "win" : "other",
   };
 }

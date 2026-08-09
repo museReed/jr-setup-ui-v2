@@ -1,6 +1,7 @@
 import type { Card } from "../../domain/card.ts";
 import type { CheckId, CheckStatus } from "../../domain/check.ts";
 import type { MessageKey } from "../../domain/copy-keys.ts";
+import type { Platform } from "../../domain/platform.ts";
 import type { RunEvent } from "../../usecase/ports.ts";
 
 export interface WireProgress {
@@ -14,6 +15,7 @@ export interface WireProgress {
 
 export interface StateBody {
   card: Card;
+  platform: Platform;
   progress: WireProgress;
 }
 

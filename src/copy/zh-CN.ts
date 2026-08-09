@@ -40,6 +40,19 @@ export const zhCN: Record<MessageKey, string> = {
   "terminal.title": "现在正在做什么",
   "terminal.empty": "按上面的按钮，这里会即时显示进度。",
 
+  "mock.unknown": "认不得的画面类型：",
+  "mock.which-button": "（哪颗按钮）",
+  "mock.which-row": "（哪一列）",
+  "mock.which-step": "（哪一步）",
+  "mock.which-step-item": "（那一步底下的项目）",
+  "mock.which-title": "（标题）",
+  "mock.terminal-app": "终端",
+
+  "terminal.raw-summary": "看原始输出",
+  "terminal.raw-empty": "还没有任何指令跑过。",
+  "terminal.copy": "复制",
+  "terminal.copied": "已复制",
+
   "walkthrough.title": "怎么做",
   "walkthrough.close": "关闭",
   "walkthrough.see": "会看到",

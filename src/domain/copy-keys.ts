@@ -55,6 +55,22 @@ export const K = {
   terminal: {
     title: "terminal.title",
     empty: "terminal.empty",
+    // 原始輸出跟白話進度是兩件事，各自一塊——前一代就是這樣分的。
+    rawSummary: "terminal.raw-summary",
+    rawEmpty: "terminal.raw-empty",
+    copy: "terminal.copy",
+    copied: "terminal.copied",
+  },
+  // 畫出來的那些示意圖裡，內容沒填時的佔位字。它們只在教學編錯時才出現——
+  // 但那正是最需要看得懂的時刻，所以一樣要能翻。
+  mock: {
+    unknown: "mock.unknown",
+    whichButton: "mock.which-button",
+    whichRow: "mock.which-row",
+    whichStep: "mock.which-step",
+    whichStepItem: "mock.which-step-item",
+    whichTitle: "mock.which-title",
+    terminalApp: "mock.terminal-app",
   },
   walkthrough: {
     title: "walkthrough.title",

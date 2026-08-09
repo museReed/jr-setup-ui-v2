@@ -40,6 +40,19 @@ export const en: Record<MessageKey, string> = {
   "terminal.title": "What's happening right now",
   "terminal.empty": "Press a button above and progress shows up here.",
 
+  "mock.unknown": "Unknown screen type: ",
+  "mock.which-button": "(which button)",
+  "mock.which-row": "(which row)",
+  "mock.which-step": "(which step)",
+  "mock.which-step-item": "(the item under that step)",
+  "mock.which-title": "(title)",
+  "mock.terminal-app": "Terminal",
+
+  "terminal.raw-summary": "Show raw output",
+  "terminal.raw-empty": "Nothing has run yet.",
+  "terminal.copy": "Copy",
+  "terminal.copied": "Copied",
+
   "walkthrough.title": "How to do it",
   "walkthrough.close": "Close",
   "walkthrough.see": "You'll see",

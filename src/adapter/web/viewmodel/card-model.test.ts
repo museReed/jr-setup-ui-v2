@@ -91,8 +91,9 @@ test("程式判定的格唯讀，只有眼睛那格可以勾", () => {
   );
 });
 
-// 指令輸出照原樣、我們自己的話翻代號；顏色兩者都由 ViewModel 決定。
-test("終端：指令輸出留原文，我們的話從代號翻出來", () => {
+// 白話進度與原始輸出是兩塊：上面回答「現在正在做什麼」，下面是指令原封不動吐
+// 出來的東西。混在一起的話 npm 那幾十行雜訊會把白話進度整個淹掉。
+test("終端：白話進度與原始輸出分開，代號在這一層翻成字", () => {
   const model = cardModel({
     ...appState({ claude: "ok" }, {}),
     terminal: [
@@ -103,11 +104,10 @@ test("終端：指令輸出留原文，我們的話從代號翻出來", () => {
   });
 
   assert.deepEqual(
-    model.terminalLines.map((line) => line.tone),
-    ["plain", "err", "ok"],
+    model.terminalLines.map((line) => ({ text: line.text, tone: line.tone })),
+    [{ text: "完成", tone: "ok" }],
   );
-  assert.equal(model.terminalLines[0]?.text, "added 1 package in 3s");
-  assert.equal(model.terminalLines[2]?.text, "完成");
+  assert.equal(model.rawOutput, "added 1 package in 3s\ncommand not found");
 });
 
 function appState(
@@ -130,6 +130,7 @@ function appState(
   return {
     card: claudeCodeCard,
     locale: "zh-TW",
+    platform: "mac",
     progress,
     terminal: [],
     runningAction: null,
