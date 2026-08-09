@@ -5,9 +5,11 @@ export type CardId = string;
 export type SectionId = string;
 
 export type Capability =
-  | { kind: "install"; action: string }
+  // startKey：按下去的那一刻，終端要先講的那句白話。由能力自己宣告——放在別的
+  // 地方就要維護一張 action→訊息 的對照表，而那張表遲早會跟能力清單對不上。
+  | { kind: "install"; action: string; startKey: MessageKey }
   | { kind: "verify"; via: "auto" | "terminal"; action: string }
-  | { kind: "login"; action: string }
+  | { kind: "login"; action: string; startKey: MessageKey }
   // walkthrough：這一格有沒有編過「怎麼做」的教學。明寫在卡片定義裡而不是靠 id
   // 對應猜——沒編過的格子不該畫按鈕，按出一個空彈窗比沒有按鈕更讓人困惑。
   | { kind: "eye-check"; id: string; promptKey: MessageKey; walkthrough?: string }

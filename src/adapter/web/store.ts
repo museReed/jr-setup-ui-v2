@@ -1,5 +1,5 @@
 import { isLocale, type Locale } from "../../copy/index.ts";
-import { K } from "../../domain/copy-keys.ts";
+import { K, type MessageKey } from "../../domain/copy-keys.ts";
 import type { ProgressState } from "../../domain/progress.ts";
 import { api, type ServerEvent, type StateBody, type WireProgress } from "./api.ts";
 import type { AppState, TerminalEntry } from "./viewmodel/card-model.ts";
@@ -10,7 +10,7 @@ export interface Store {
   get(): AppState;
   subscribe(listener: () => void): () => void;
   load(): Promise<void>;
-  runAction(action: string, checkId?: string): Promise<void>;
+  runAction(action: string, checkId?: string, startKey?: MessageKey): Promise<void>;
   toggleEye(id: string, checked: boolean): Promise<void>;
   skip(): Promise<void>;
   setLocale(locale: Locale): void;
@@ -43,6 +43,8 @@ export function createStore(): Store {
     runningAction: null,
   };
   const listeners = new Set<() => void>();
+  // 第幾輪。原始輸出保留最近幾輪要靠它分組（見 viewmodel 的 recentRawOutput）。
+  let runSeq = 0;
 
   const set = (next: Partial<AppState>): void => {
     state = { ...state, ...next };
@@ -71,6 +73,7 @@ export function createStore(): Store {
         source: "output",
         text: event.event.text,
         kind: event.event.kind === "error" ? "error" : "output",
+        run: runSeq,
       });
       return;
     }
@@ -104,7 +107,7 @@ export function createStore(): Store {
       applyBody(await api.visit());
     },
 
-    async runAction(action, checkId) {
+    async runAction(action, checkId, startKey) {
       if (action === "recheck") {
         push({ source: "notice", messageKey: K.run.rechecking, kind: "note" });
         applyBody(await api.recheck());
@@ -112,7 +115,14 @@ export function createStore(): Store {
         return;
       }
 
-      set({ runningAction: action, terminal: [] });
+      // ⚠️ 不清白話那幾行：跑一輪只換掉原始輸出。連白話一起清的話，剛印的那句
+      // 「正在安裝…」會被自己的執行清掉，翻回這張卡也看不到當時的紀錄。
+      runSeq += 1;
+      set({ runningAction: action });
+
+      if (startKey !== undefined) {
+        push({ source: "notice", messageKey: startKey, kind: "note" });
+      }
 
       // 驗證要指名是哪一格。ViewModel 已經把 checkId 綁在那顆按鈕上——沒有它就是
       // 前一代那個「按第二格卻開了第一格的終端」的坑。

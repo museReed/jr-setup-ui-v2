@@ -97,8 +97,8 @@ test("終端：白話進度與原始輸出分開，代號在這一層翻成字",
   const model = cardModel({
     ...appState({ claude: "ok" }, {}),
     terminal: [
-      { source: "output", text: "added 1 package in 3s", kind: "output" },
-      { source: "output", text: "command not found", kind: "error" },
+      { source: "output", text: "added 1 package in 3s", kind: "output", run: 1 },
+      { source: "output", text: "command not found", kind: "error", run: 1 },
       { source: "notice", messageKey: K.run.done, kind: "done-ok" },
     ],
   });
@@ -136,3 +136,23 @@ function appState(
     runningAction: null,
   };
 }
+
+// 學生遇到失敗的第一個動作就是再按一次——那時失敗那次的輸出已經沒了，而我們要
+// 判斷的正是失敗那次。
+test("原始輸出保留最近三輪，更早的丟掉", () => {
+  const model = cardModel({
+    ...appState({ claude: "ok" }, {}),
+    terminal: [1, 2, 3, 4].map((run) => ({
+      source: "output" as const,
+      text: `run-${run}`,
+      kind: "output" as const,
+      run,
+    })),
+  });
+
+  assert.match(model.rawOutput, /run-2/);
+  assert.match(model.rawOutput, /run-4/);
+  assert.doesNotMatch(model.rawOutput, /run-1/);
+  // 輪與輪之間要看得出分界
+  assert.match(model.rawOutput, /────/);
+});

@@ -39,7 +39,7 @@ export function App({ store }: { store: Store }) {
       key={button.action}
       tone={button.tone}
       disabled={button.disabled}
-      onClick={() => void store.runAction(button.action, button.checkId)}
+      onClick={() => void store.runAction(button.action, button.checkId, button.startKey)}
     >
       {button.label}
     </Button>

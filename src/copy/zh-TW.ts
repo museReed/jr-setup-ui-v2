@@ -68,6 +68,8 @@ export const zhTW: Record<MessageKey, string> = {
   "run.recheck-done": "檢查完成，狀態已更新。",
   "run.done": "完成",
   "run.failed": "沒有成功",
+  "run.start-install-claude": "正在安裝 Claude Code。這一步要下載，可能要一兩分鐘。",
+  "run.start-login-claude": "正在開始登入。等一下會出現一段網址與代碼，照著做完再回來。",
   "run.verify-opened": "已開啟一個新的終端視窗，照裡面的字做完再回來。",
   "run.verify-abandoned":
     "那個終端視窗沒有走完（被關掉，或超過三分鐘沒動作）。這次不算驗證通過，可以再按一次。",

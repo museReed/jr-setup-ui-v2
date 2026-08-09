@@ -27,7 +27,13 @@ import type {
 export type TerminalEntryKind = "output" | "error" | "note" | "done-ok" | "done-fail";
 
 export type TerminalEntry =
-  | { readonly source: "output"; readonly text: string; readonly kind: TerminalEntryKind }
+  | {
+      readonly source: "output";
+      readonly text: string;
+      readonly kind: TerminalEntryKind;
+      // 這一行是第幾輪跑出來的。保留最近幾輪要靠它分組。
+      readonly run: number;
+    }
   | {
       readonly source: "notice";
       readonly messageKey: MessageKey;
@@ -53,6 +59,8 @@ export interface ButtonModel {
   readonly disabled: boolean;
   // 驗證要指名是哪一格。少了它，卡片上有兩個驗證時第二格會拿隔壁格的參數去跑。
   readonly checkId?: string;
+  // 按下去的那一刻要講的那句白話（驗證那條的訊息由伺服器發，所以沒有）。
+  readonly startKey?: MessageKey;
 }
 
 export interface ChecklistRow {
@@ -153,10 +161,7 @@ export function cardModel(state: AppState): CardViewModel {
         text: t(entry.messageKey),
         tone: TERMINAL_TONE[entry.kind],
       })),
-    rawOutput: state.terminal
-      .filter((entry) => entry.source === "output")
-      .map((entry) => entry.text)
-      .join("\n"),
+    rawOutput: recentRawOutput(state.terminal),
     canAdvance: advance,
     canSkip: canSkip(card, progress),
     advanceHint: t(
@@ -219,6 +224,7 @@ function rowButtons(check: CardCheck, state: AppState): ButtonModel[] {
           label: t(installed ? K.action.reinstall : K.action.install),
           tone: installed ? "success" : "accent",
           disabled: busy,
+          startKey: capability.startKey,
         },
       ];
     }
@@ -230,6 +236,7 @@ function rowButtons(check: CardCheck, state: AppState): ButtonModel[] {
           label: t(installed ? K.action.relogin : K.action.login),
           tone: installed ? "success" : "accent",
           disabled: busy,
+          startKey: capability.startKey,
         },
       ];
     }
@@ -265,4 +272,25 @@ function labelForVerify(
     locale,
     capability.via === "terminal" ? K.action.verifyTerminal : K.action.verifyAuto,
   );
+}
+
+// 保留最近幾輪，不是只留最後一輪。
+//
+// 學生遇到失敗的第一個動作就是再按一次——那時失敗那次的輸出已經沒了，而我們要
+// 判斷的正是失敗那次。輪與輪之間畫一條線隔開。
+const MAX_KEPT_RUNS = 3;
+const RUN_SEPARATOR = "────────────";
+
+function recentRawOutput(entries: readonly TerminalEntry[]): string {
+  const outputs = entries.filter((entry) => entry.source === "output");
+  const runs = [...new Set(outputs.map((entry) => entry.run))].slice(-MAX_KEPT_RUNS);
+
+  return runs
+    .map((run) =>
+      outputs
+        .filter((entry) => entry.run === run)
+        .map((entry) => entry.text)
+        .join("\n"),
+    )
+    .join(`\n${RUN_SEPARATOR}\n`);
 }

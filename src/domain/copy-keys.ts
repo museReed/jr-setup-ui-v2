@@ -84,6 +84,8 @@ export const K = {
     recheckDone: "run.recheck-done",
     done: "run.done",
     failed: "run.failed",
+    startInstallClaude: "run.start-install-claude",
+    startLoginClaude: "run.start-login-claude",
     verifyOpened: "run.verify-opened",
     verifyAbandoned: "run.verify-abandoned",
   },

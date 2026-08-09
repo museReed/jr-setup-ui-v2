@@ -63,6 +63,8 @@ export const zhCN: Record<MessageKey, string> = {
   "run.recheck-done": "检查完成，状态已更新。",
   "run.done": "完成",
   "run.failed": "没有成功",
+  "run.start-install-claude": "正在安装 Claude Code。这一步要下载，可能要一两分钟。",
+  "run.start-login-claude": "正在开始登录。等一下会出现一段网址与代码，照着做完再回来。",
   "run.verify-opened": "已开启一个新的终端窗口，照里面的字做完再回来。",
   "run.verify-abandoned":
     "那个终端窗口没有走完（被关掉，或超过三分钟没动作）。这次不算验证通过，可以再按一次。",

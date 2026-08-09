@@ -63,6 +63,8 @@ export const en: Record<MessageKey, string> = {
   "run.recheck-done": "Check finished, status updated.",
   "run.done": "Done",
   "run.failed": "Didn't succeed",
+  "run.start-install-claude": "Installing Claude Code. This downloads a package and can take a minute or two.",
+  "run.start-login-claude": "Starting sign-in. A URL and a code will appear shortly — follow them, then come back.",
   "run.verify-opened":
     "A new terminal window is open — follow what it says, then come back.",
   "run.verify-abandoned":
