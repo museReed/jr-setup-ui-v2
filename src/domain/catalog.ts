@@ -18,3 +18,10 @@ export const claudeCodeCard: Card = {
     { kind: "recheck" },
   ],
 };
+
+// 每一格在畫面上叫什麼。放 domain 是因為它是卡片定義的一部分，不是呈現細節——
+// 後端的檢查結果與前端的清單要叫同一個名字。
+export const CLAUDE_CHECK_LABELS: Readonly<Record<string, string>> = {
+  claude: "Claude Code CLI",
+  "claude-auth": "Claude Code 登入狀態",
+};

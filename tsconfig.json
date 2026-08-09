@@ -11,6 +11,8 @@
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
     "noImplicitOverride": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact",
     "types": ["node"]
   },
   "include": ["src"]

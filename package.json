@@ -8,10 +8,17 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "node --test \"src/**/*.test.ts\""
+    "test": "node --test \"src/**/*.test.ts\"",
+    "build": "vite build",
+    "start": "node src/adapter/server/main.ts"
   },
   "devDependencies": {
+    "@preact/preset-vite": "^2.10.6",
     "@types/node": "^22.10.2",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vite": "^8.2.1"
+  },
+  "dependencies": {
+    "preact": "^10.29.8"
   }
 }
