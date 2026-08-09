@@ -5,6 +5,9 @@ export const zhCN: Record<MessageKey, string> = {
   "check.claude": "Claude Code CLI",
   "check.claude-auth": "Claude Code 登录状态",
 
+  "check.hook": "一次只跑一个指令",
+  "check.allowlist": "常用指令不用每次问你",
+
   "eye.claude-fullscreen":
     "第一次跑起来时，画面问你要用哪种显示模式——选好了就勾这格",
 
@@ -27,6 +30,7 @@ export const zhCN: Record<MessageKey, string> = {
   "action.rerun-verify": "重跑验证",
   "action.recheck": "再 check 一次",
 
+  "card.guardrails": "它什么时候该停下来问你",
   "card.checklist-title": "这张卡要完成的事",
   "card.advance-done": "这张做完了",
   "card.advance-loose": "可以往下一张，但这张还没完成",
@@ -36,6 +40,7 @@ export const zhCN: Record<MessageKey, string> = {
   "card.help": "怎么做",
 
   "hint.manual-only": "这一格程式看不到，只有你看得到",
+
 
   "terminal.title": "现在正在做什么",
   "terminal.empty": "按上面的按钮，这里会即时显示进度。",
@@ -65,6 +70,8 @@ export const zhCN: Record<MessageKey, string> = {
   "run.failed": "没有成功",
   "run.start-install-claude": "正在安装 Claude Code。这一步要下载，可能要一两分钟。",
   "run.start-login-claude": "正在开始登录。等一下会出现一段网址与代码，照着做完再回来。",
+  "run.start-install-hook": "正在装「一次只跑一个指令」的拦截器。",
+  "run.start-install-allowlist": "正在写入常用指令的白名单。",
   "run.verify-opened": "已开启一个新的终端窗口，照里面的字做完再回来。",
   "run.verify-abandoned":
     "那个终端窗口没有走完（被关掉，或超过三分钟没动作）。这次不算验证通过，可以再按一次。",

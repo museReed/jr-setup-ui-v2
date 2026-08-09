@@ -5,6 +5,9 @@ export const en: Record<MessageKey, string> = {
   "check.claude": "Claude Code CLI",
   "check.claude-auth": "Claude Code sign-in",
 
+  "check.hook": "One command at a time",
+  "check.allowlist": "Common commands stop asking every time",
+
   "eye.claude-fullscreen":
     "The first time it runs, it asks which display mode you want — tick this once you've picked",
 
@@ -27,6 +30,7 @@ export const en: Record<MessageKey, string> = {
   "action.rerun-verify": "Verify again",
   "action.recheck": "Check again",
 
+  "card.guardrails": "When it should stop and ask you",
   "card.checklist-title": "What this card needs",
   "card.advance-done": "This card is done",
   "card.advance-loose": "You can move on, but this card isn't finished",
@@ -36,6 +40,7 @@ export const en: Record<MessageKey, string> = {
   "card.help": "How to do it",
 
   "hint.manual-only": "No program can see this one — only you can",
+
 
   "terminal.title": "What's happening right now",
   "terminal.empty": "Press a button above and progress shows up here.",
@@ -65,6 +70,8 @@ export const en: Record<MessageKey, string> = {
   "run.failed": "Didn't succeed",
   "run.start-install-claude": "Installing Claude Code. This downloads a package and can take a minute or two.",
   "run.start-login-claude": "Starting sign-in. A URL and a code will appear shortly — follow them, then come back.",
+  "run.start-install-hook": "Installing the \"one command at a time\" guard.",
+  "run.start-install-allowlist": "Writing the allowlist for common commands.",
   "run.verify-opened":
     "A new terminal window is open — follow what it says, then come back.",
   "run.verify-abandoned":

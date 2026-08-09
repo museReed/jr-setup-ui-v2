@@ -34,3 +34,43 @@ export const claudeCodeCard: Card = {
     { kind: "recheck" },
   ],
 };
+
+// 第二張卡：hook + allowlist 合併。
+//
+// 為什麼合併：兩者寫的是同一個檔（~/.claude/settings.json），講的也是同一件事
+// ——它什麼時候該停下來問你。分兩張卡的話學生會以為是兩個無關的設定，而白名單
+// 的實際效果（連改檔案都不再問）根本不會出現在標題上。
+//
+// hook 排前面：它是「該擋的擋」，白名單是「不該問的不問」。先看到被攔下來的
+// 畫面，再看什麼情況不會攔，順序才講得通。
+export const guardrailsCard: Card = {
+  id: "guardrails",
+  sectionId: "rules",
+  labelKey: K.card.guardrails,
+  checks: [
+    {
+      id: "hook",
+      labelKey: K.check.hook,
+      capabilities: [
+        { kind: "install", action: "install-hook", startKey: K.run.startInstallHook },
+        // 行為驗證：餵一條串接指令，看它擋不擋。
+        // ⚠️ 跑的必須是 settings.json 裡**實際註冊的那條指令**，不是我們自己拼
+        // 一次路徑去叫腳本——腳本本身幾乎永遠是好的，壞掉的是它被怎麼叫。
+        { kind: "verify", via: "terminal", action: "verify-hook" },
+      ],
+    },
+    {
+      id: "allowlist",
+      labelKey: K.check.allowlist,
+      capabilities: [
+        {
+          kind: "install",
+          action: "install-allowlist",
+          startKey: K.run.startInstallAllowlist,
+        },
+        { kind: "verify", via: "terminal", action: "verify-allowlist" },
+      ],
+    },
+  ],
+  capabilities: [{ kind: "recheck" }],
+};

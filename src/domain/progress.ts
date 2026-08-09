@@ -103,3 +103,13 @@ function eyeChecks(card: Card) {
 function rawStatus(checkId: CheckId, state: ProgressState): CheckStatus {
   return state.statuses.get(checkId) ?? "missing";
 }
+
+// 合併卡的順序約束：這張卡上該裝的都裝好了，才輪到驗證。
+//
+// 順序反了驗的是「只裝了一半」的狀態——而那種驗證多半會過（半套設定通常不會
+// 報錯，只是不完整），於是綠燈長在一個沒做完的東西上。
+export function canVerifyYet(card: Card, state: ProgressState): boolean {
+  return card.checks
+    .filter((check) => findCapability(check, "install") !== undefined)
+    .every((check) => rawStatus(check.id, state) !== "missing");
+}

@@ -8,6 +8,9 @@ export const zhTW: Record<MessageKey, string> = {
   "check.claude": "Claude Code CLI",
   "check.claude-auth": "Claude Code 登入狀態",
 
+  "check.hook": "一次只跑一個指令",
+  "check.allowlist": "常用指令不用每次問你",
+
   "eye.claude-fullscreen":
     "第一次跑起來時，畫面問你要用哪種顯示模式——選好了就勾這格",
 
@@ -32,6 +35,7 @@ export const zhTW: Record<MessageKey, string> = {
   "action.recheck": "再 check 一次",
 
   "card.claude": "Claude Code",
+  "card.guardrails": "它什麼時候該停下來問你",
   "card.checklist-title": "這張卡要完成的事",
   "card.advance-done": "這張做完了",
   "card.advance-loose": "可以往下一張，但這張還沒完成",
@@ -41,6 +45,7 @@ export const zhTW: Record<MessageKey, string> = {
   "card.help": "怎麼做",
 
   "hint.manual-only": "這一格程式看不到，只有你看得到",
+
 
   "terminal.title": "現在正在做什麼",
   "terminal.empty": "按上面的按鈕，這裡會即時顯示進度。",
@@ -70,6 +75,8 @@ export const zhTW: Record<MessageKey, string> = {
   "run.failed": "沒有成功",
   "run.start-install-claude": "正在安裝 Claude Code。這一步要下載，可能要一兩分鐘。",
   "run.start-login-claude": "正在開始登入。等一下會出現一段網址與代碼，照著做完再回來。",
+  "run.start-install-hook": "正在裝「一次只跑一個指令」的攔截器。",
+  "run.start-install-allowlist": "正在寫入常用指令的白名單。",
   "run.verify-opened": "已開啟一個新的終端視窗，照裡面的字做完再回來。",
   "run.verify-abandoned":
     "那個終端視窗沒有走完（被關掉，或超過三分鐘沒動作）。這次不算驗證通過，可以再按一次。",

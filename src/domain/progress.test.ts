@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { claudeCodeCard } from "./catalog.ts";
+import { claudeCodeCard, guardrailsCard } from "./catalog.ts";
 import type { CheckId, CheckStatus } from "./check.ts";
 import {
   canAdvance,
+  canVerifyYet,
   canSkip,
   cardDisplayState,
   effectiveStatus,
@@ -93,3 +94,13 @@ function progress(
     skipped: new Set(sets.skipped ?? []),
   };
 }
+
+// 合併卡：兩份都裝好才輪到驗證。順序反了驗的是「只裝了一半」的狀態，而那種驗證
+// 多半會過（半套設定通常不會報錯，只是不完整），於是綠燈長在沒做完的東西上。
+test("合併卡：其中一份還沒裝，就還不能驗證", () => {
+  const half = progress({ hook: "ok", allowlist: "missing" }, {});
+  const both = progress({ hook: "ok", allowlist: "ok" }, {});
+
+  assert.equal(canVerifyYet(guardrailsCard, half), false);
+  assert.equal(canVerifyYet(guardrailsCard, both), true);
+});
