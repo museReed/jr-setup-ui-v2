@@ -62,6 +62,7 @@ export function App({ store }: { store: Store }) {
             <CheckItem
               key={row.id}
               checked={row.checked}
+              label={row.label}
               readOnly={row.readOnly}
               verifiedBy={row.verifiedBy}
               hint={row.hint}
@@ -72,9 +73,7 @@ export function App({ store }: { store: Store }) {
                   : () => void openWalkthrough(row.walkthroughId!, setWalkthrough)
               }
               onChange={(checked) => void store.toggleEye(row.id, checked)}
-            >
-              {row.label}
-            </CheckItem>
+            />
           ))}
         </Checklist>
 

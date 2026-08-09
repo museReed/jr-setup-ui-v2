@@ -19,7 +19,9 @@ export type VerifiedBy = "system" | "manual";
 
 export interface CheckItemProps {
   checked: boolean;
-  children: ComponentChildren;
+  // ⚠️ 必須是純字串，不能是任意 children：glitch 的干擾動畫靠 `content:attr(data-text)`
+  // 把同一段字複製成兩層（一層青一層橘往反方向錯位），所以那段字要能塞進屬性裡。
+  label: string;
   verifiedBy: VerifiedBy;
   hint?: ComponentChildren;
   // 程式判定的那幾格：學生看得到狀態，但不能自己勾。
@@ -35,7 +37,7 @@ export interface CheckItemProps {
 
 export function CheckItem({
   checked,
-  children,
+  label,
   verifiedBy,
   hint,
   readOnly = false,
@@ -63,7 +65,12 @@ export function CheckItem({
           </svg>
         </span>
         <span class="ds-check-text">
-          {children}
+          {/* 文字要包一層 .ds-check-label 並且把同一段字寫進 data-text——hover 時
+              DS 用 content:attr(data-text) 複製成兩層做訊號干擾感。少了這一層，
+              動畫不會報錯，只是靜靜地不發生。 */}
+          <span class="ds-check-label" data-text={label}>
+            {label}
+          </span>
           {/* 說明文字掛自己的 class：DS 把勾選後的 small 寫死成青色（不吃 --gl-ink），
               橘的那幾格會變成「標題橘、底下那句青」——兩種顏色本來就是用來分「誰負責
               驗」的，混在同一格裡就沒有意義了。 */}
