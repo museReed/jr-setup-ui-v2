@@ -10,11 +10,23 @@ export type Capability =
   | { kind: "eye-check"; id: string; prompt: string }
   | { kind: "recheck" };
 
+// 一張卡上的一格。
+//
+// ⚠️ 能力掛在**格**上，不掛在卡上。按鈕要畫在它負責的那一格旁邊——掛在卡上的話
+// 「這顆按鈕是在幫我做哪一格」就變成學生要自己配對的事；前一代合併卡的第二個驗證
+// 甚至完全沒有入口，而那一列還寫著「按下面的重跑驗證」（指向一顆會開錯終端的按鈕）。
+export interface CardCheck {
+  id: CheckId;
+  label: string;
+  capabilities: Capability[];
+}
+
 export interface Card {
   id: CardId;
   sectionId: SectionId;
   label: string;
-  checkIds: CheckId[];
+  checks: CardCheck[];
+  // 卡片級的能力：整張卡重新檢查、以及沒有對應某一格的人工勾選。
   capabilities: Capability[];
 }
 
@@ -24,22 +36,25 @@ export type CapabilityOfKind<K extends CapabilityKind> = Extract<
   { kind: K }
 >;
 
+// 卡與格都只是「有 capabilities 的東西」，同一組查詢函式兩邊都能用。
+interface HasCapabilities {
+  readonly capabilities: readonly Capability[];
+}
+
 export function findCapability<K extends CapabilityKind>(
-  card: Card,
+  owner: HasCapabilities,
   kind: K,
 ): CapabilityOfKind<K> | undefined {
-  return card.capabilities.find(
-    (capability): capability is CapabilityOfKind<K> =>
-      capability.kind === kind,
+  return owner.capabilities.find(
+    (capability): capability is CapabilityOfKind<K> => capability.kind === kind,
   );
 }
 
 export function findCapabilities<K extends CapabilityKind>(
-  card: Card,
+  owner: HasCapabilities,
   kind: K,
 ): CapabilityOfKind<K>[] {
-  return card.capabilities.filter(
-    (capability): capability is CapabilityOfKind<K> =>
-      capability.kind === kind,
+  return owner.capabilities.filter(
+    (capability): capability is CapabilityOfKind<K> => capability.kind === kind,
   );
 }

@@ -1,5 +1,5 @@
 import type { CheckId, CheckStatus } from "./check.ts";
-import type { Card, CardId } from "./card.ts";
+import type { Card, CardCheck, CardId } from "./card.ts";
 import { findCapabilities, findCapability } from "./card.ts";
 
 export interface ProgressState {
@@ -17,22 +17,22 @@ export type CardDisplayState =
   | "complete"
   | "failed";
 
+// 一格的有效狀態。
+//
+// ⚠️ 「要不要降級成 unverified」看的是**這一格**有沒有宣告驗證，不是整張卡。
+// 用卡片級判斷的話，登入那一格會被 CLI 那一格的驗證需求連坐，明明 `claude auth
+// status` 已經回答了行為問題，畫面上卻還寫「還沒驗過生效」。
 export function effectiveStatus(
-  checkId: CheckId,
-  card: Card,
+  check: CardCheck,
   state: ProgressState,
 ): CheckStatus {
-  const original = rawStatus(checkId, state);
+  const original = rawStatus(check.id, state);
 
-  if (original === "missing") {
-    return "missing";
+  if (original === "missing" || original === "failed") {
+    return original;
   }
 
-  if (original === "failed") {
-    return "failed";
-  }
-
-  if (findCapability(card, "verify") && !state.verified.has(checkId)) {
+  if (findCapability(check, "verify") !== undefined && !state.verified.has(check.id)) {
     return "unverified";
   }
 
@@ -41,41 +41,39 @@ export function effectiveStatus(
 
 export function isComplete(card: Card, state: ProgressState): boolean {
   return (
-    card.checkIds.every(
-      (checkId) => effectiveStatus(checkId, card, state) === "ok",
-    ) &&
-    findCapabilities(card, "eye-check").every((capability) =>
-      state.eyeChecked.has(capability.id),
-    )
+    card.checks.every((check) => effectiveStatus(check, state) === "ok") &&
+    eyeChecks(card).every((capability) => state.eyeChecked.has(capability.id))
   );
 }
 
+// 「能不能翻下一張」跟「這張完成了」是兩件事。驗證跑過但還沒通過，學生仍然走得掉
+// ——課堂上不能因為一次環境抽風就把人鎖死在同一張卡上。
 export function canAdvance(card: Card, state: ProgressState): boolean {
   if (state.skipped.has(card.id)) {
     return true;
   }
 
-  const installedEnough = card.checkIds.every((checkId) => {
-    const status = rawStatus(checkId, state);
+  const installed = card.checks.every((check) => {
+    const status = rawStatus(check.id, state);
     return status !== "missing" && status !== "failed";
   });
-  const verificationAttempted =
-    !findCapability(card, "verify") ||
-    card.checkIds.every((checkId) => state.attempted.has(checkId));
-  const eyeChecksDone = findCapabilities(card, "eye-check").every(
-    (capability) => state.eyeChecked.has(capability.id),
+
+  const attempted = card.checks.every(
+    (check) =>
+      findCapability(check, "verify") === undefined ||
+      state.attempted.has(check.id),
   );
 
-  return installedEnough && verificationAttempted && eyeChecksDone;
+  const eyesDone = eyeChecks(card).every((capability) =>
+    state.eyeChecked.has(capability.id),
+  );
+
+  return installed && attempted && eyesDone;
 }
 
+// 逆口只在「被鎖住，而且原因是驗證失敗」時出現，不是隨時都給。
 export function canSkip(card: Card, state: ProgressState): boolean {
-  return (
-    !canAdvance(card, state) &&
-    card.checkIds.some(
-      (checkId) => effectiveStatus(checkId, card, state) === "failed",
-    )
-  );
+  return !canAdvance(card, state) && hasFailure(card, state);
 }
 
 export function cardDisplayState(
@@ -86,24 +84,22 @@ export function cardDisplayState(
     return "complete";
   }
 
-  if (
-    card.checkIds.some(
-      (checkId) => effectiveStatus(checkId, card, state) === "failed",
-    )
-  ) {
+  if (hasFailure(card, state)) {
     return "failed";
   }
 
-  if (state.visited.has(card.id)) {
-    return "visited-incomplete";
-  }
-
-  return "untouched";
+  return state.visited.has(card.id) ? "visited-incomplete" : "untouched";
 }
 
-function rawStatus(
-  checkId: CheckId,
-  state: ProgressState,
-): CheckStatus {
+function hasFailure(card: Card, state: ProgressState): boolean {
+  return card.checks.some((check) => effectiveStatus(check, state) === "failed");
+}
+
+// 人工勾選掛在卡片級：它們對應的不是某一格程式檢查，而是「只有你看得到」的事。
+function eyeChecks(card: Card) {
+  return findCapabilities(card, "eye-check");
+}
+
+function rawStatus(checkId: CheckId, state: ProgressState): CheckStatus {
   return state.statuses.get(checkId) ?? "missing";
 }

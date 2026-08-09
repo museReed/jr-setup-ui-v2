@@ -8,15 +8,14 @@ export interface Store {
   get(): AppState;
   subscribe(listener: () => void): () => void;
   load(): Promise<void>;
-  runAction(action: string): Promise<void>;
+  runAction(action: string, checkId?: string): Promise<void>;
   toggleEye(id: string, checked: boolean): Promise<void>;
   skip(): Promise<void>;
 }
 
 export function createStore(): Store {
   let state: AppState = {
-    card: { id: "", sectionId: "", label: "載入中…", checkIds: [], capabilities: [] },
-    labels: {},
+    card: { id: "", sectionId: "", label: "載入中…", checks: [], capabilities: [] },
     progress: emptyProgress(),
     terminal: [],
     runningAction: null,
@@ -29,7 +28,7 @@ export function createStore(): Store {
   };
 
   const applyBody = (body: StateBody): void => {
-    set({ card: body.card, labels: body.labels, progress: hydrate(body.progress) });
+    set({ card: body.card, progress: hydrate(body.progress) });
   };
 
   // store 只記「發生了什麼」，不記顏色——顏色是呈現決定，留給 ViewModel。
@@ -65,7 +64,7 @@ export function createStore(): Store {
       applyBody(await api.visit());
     },
 
-    async runAction(action) {
+    async runAction(action, checkId) {
       if (action === "recheck") {
         say("重新檢查環境狀態…", "note");
         applyBody(await api.recheck());
@@ -75,8 +74,10 @@ export function createStore(): Store {
 
       set({ runningAction: action, terminal: [] });
 
-      if (action === "verify-claude") {
-        await api.verify();
+      // 驗證要指名是哪一格。ViewModel 已經把 checkId 綁在那顆按鈕上——沒有它就是
+      // 前一代那個「按第二格卻開了第一格的終端」的坑。
+      if (checkId !== undefined) {
+        await api.verify(checkId);
         return;
       }
 

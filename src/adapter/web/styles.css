@@ -77,14 +77,35 @@ body {
   border-color: transparent;
 }
 
-/* 程式判定的那幾格：看得到狀態，但點不動。DS 的 .ds-check 預設是 cursor:pointer
-   而且 hover 會變色，不關掉的話學生會一直去點一格永遠不會動的東西。 */
-.ds-check.is-readonly {
-  cursor: default;
+/* 每一格自己的按鈕排在該格右側。
+   ⚠️ 分隔線要搬到 .check-row 上：留在 .ds-check 身上的話，線只畫到文字那半的寬度，
+   右邊按鈕那一塊會缺一角。 */
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  border-top: 1px solid var(--gl-line);
 }
 
-.ds-check.is-readonly:hover {
-  background: transparent;
+.check-row > .ds-check {
+  flex: 1;
+  min-width: 0;
+  border-top: 0;
+}
+
+.check-row-actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4) var(--space-2) 0;
+}
+
+/* 清單裡的按鈕比卡片底下那顆小一號：它們是「這一格的動作」，不該搶走整張卡的視線。 */
+.check-row-actions .ds-btn-fill {
+  padding: 4px var(--space-3);
+  font-size: var(--fs-sm);
 }
 
 .card-actions {

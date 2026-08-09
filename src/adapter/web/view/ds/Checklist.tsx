@@ -20,6 +20,9 @@ export interface CheckItemProps {
   // 程式判定的那幾格：學生看得到狀態，但不能自己勾。
   // 「能自動判定的就自動判定，勾選欄位越少，學生越不會一排全勾。」
   readOnly?: boolean;
+  // 這一格自己的動作。掛在格內而不是卡片底下——留在外面的話，學生仍然要自己配對
+  // 哪顆按鈕帶他做哪一格。
+  actions?: ComponentChildren;
   onChange?: (checked: boolean) => void;
 }
 
@@ -28,26 +31,34 @@ export function CheckItem({
   children,
   hint,
   readOnly = false,
+  actions,
   onChange,
 }: CheckItemProps) {
   return (
-    <label class={readOnly ? "ds-check is-readonly" : "ds-check"}>
-      <input
-        type="checkbox"
-        checked={checked}
-        disabled={readOnly}
-        onChange={(event) => onChange?.(event.currentTarget.checked)}
-      />
-      <span class="ds-check-box" aria-hidden="true">
-        <svg viewBox="0 0 24 24">
-          <path d={TICK_PATH} />
-        </svg>
-      </span>
-      <span class="ds-check-text">
-        {children}
-        {hint === undefined ? null : <small>{hint}</small>}
-      </span>
-    </label>
+    // ⚠️ 按鈕不能放在 <label> 裡：點按鈕會連帶觸發 label 的 for，把勾選一起切掉。
+    // 所以 label 只包到文字為止，動作排在它旁邊。
+    <div class="check-row">
+      {/* 唯讀不需要額外的 class：DS 的 glitch 變體已經有
+          `.ds-check:has(input:disabled){cursor:not-allowed}`。自己再加一條只會分岔。 */}
+      <label class="ds-check">
+        <input
+          type="checkbox"
+          checked={checked}
+          disabled={readOnly}
+          onChange={(event) => onChange?.(event.currentTarget.checked)}
+        />
+        <span class="ds-check-box" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d={TICK_PATH} />
+          </svg>
+        </span>
+        <span class="ds-check-text">
+          {children}
+          {hint === undefined ? null : <small>{hint}</small>}
+        </span>
+      </label>
+      {actions === undefined ? null : <div class="check-row-actions">{actions}</div>}
+    </div>
   );
 }
 
@@ -58,13 +69,21 @@ export interface ChecklistProps {
   children: ComponentChildren;
 }
 
+// --glitch 是 DS 內建的深色終端變體。前一代整套嚮導都用它——「青色＝系統自己驗、
+// 橘色＝要你自己看」那組顏色語彙是靠這個底色才有對比度的。
 export function Checklist({ title, done, total, children }: ChecklistProps) {
   // is-complete 會把右上角那顆計數變成成功色（.ds-checklist.is-complete .ds-checklist-count）。
   // 全部勾完才給——這是學生唯一會盯著看的數字。
   const complete = total > 0 && done === total;
 
   return (
-    <div class={complete ? "ds-checklist is-complete" : "ds-checklist"}>
+    <div
+      class={
+        complete
+          ? "ds-checklist ds-checklist--glitch is-complete"
+          : "ds-checklist ds-checklist--glitch"
+      }
+    >
       <div class="ds-checklist-head">
         <span class="ds-checklist-title">{title}</span>
         <span class="ds-checklist-count">

@@ -4,24 +4,29 @@ export const claudeCodeCard: Card = {
   id: "claude",
   sectionId: "env",
   label: "Claude Code",
-  checkIds: ["claude", "claude-auth"],
+  checks: [
+    {
+      id: "claude",
+      label: "Claude Code CLI",
+      capabilities: [
+        { kind: "install", action: "install-claude" },
+        // 開真的終端跑一次才算數。探測只看得到「檔案在不在」，看不到「跑起來會怎樣」。
+        { kind: "verify", via: "terminal", action: "verify-claude" },
+      ],
+    },
+    {
+      id: "claude-auth",
+      label: "Claude Code 登入狀態",
+      // 登入沒有另外的行為驗證：`claude auth status` 問的就是行為本身。
+      capabilities: [{ kind: "login", action: "login-claude" }],
+    },
+  ],
   capabilities: [
-    { kind: "install", action: "install-claude" },
-    { kind: "login", action: "login-claude" },
-    { kind: "verify", via: "terminal", action: "verify-claude" },
     {
       kind: "eye-check",
       id: "eye-claude-fullscreen",
-      prompt:
-        "第一次跑起來時，畫面問你要用哪種顯示模式——選好了就勾這格",
+      prompt: "第一次跑起來時，畫面問你要用哪種顯示模式——選好了就勾這格",
     },
     { kind: "recheck" },
   ],
-};
-
-// 每一格在畫面上叫什麼。放 domain 是因為它是卡片定義的一部分，不是呈現細節——
-// 後端的檢查結果與前端的清單要叫同一個名字。
-export const CLAUDE_CHECK_LABELS: Readonly<Record<string, string>> = {
-  claude: "Claude Code CLI",
-  "claude-auth": "Claude Code 登入狀態",
 };

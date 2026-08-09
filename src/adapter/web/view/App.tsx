@@ -1,5 +1,6 @@
 import { useEffect, useState } from "preact/hooks";
 
+import type { ButtonModel } from "../viewmodel/card-model.ts";
 import { cardModel } from "../viewmodel/card-model.ts";
 import type { Store } from "../store.ts";
 import { Button, Card, CheckItem, Checklist, Logo, Terminal } from "./ds/index.ts";
@@ -17,6 +18,17 @@ export function App({ store }: { store: Store }) {
 
   const state = store.get();
   const model = cardModel(state);
+
+  const action = (button: ButtonModel) => (
+    <Button
+      key={button.action}
+      tone={button.tone}
+      disabled={button.disabled}
+      onClick={() => void store.runAction(button.action, button.checkId)}
+    >
+      {button.label}
+    </Button>
+  );
 
   return (
     <main class="wizard-layout">
@@ -48,6 +60,7 @@ export function App({ store }: { store: Store }) {
               checked={row.checked}
               readOnly={row.readOnly}
               hint={row.hint}
+              actions={row.buttons.length === 0 ? undefined : row.buttons.map(action)}
               onChange={(checked) => void store.toggleEye(row.id, checked)}
             >
               {row.label}
@@ -55,18 +68,7 @@ export function App({ store }: { store: Store }) {
           ))}
         </Checklist>
 
-        <div class="card-actions">
-          {model.buttons.map((button) => (
-            <Button
-              key={button.action}
-              tone={button.tone}
-              disabled={button.disabled}
-              onClick={() => void store.runAction(button.action)}
-            >
-              {button.label}
-            </Button>
-          ))}
-        </div>
+        <div class="card-actions">{model.cardButtons.map(action)}</div>
       </Card>
 
       <Terminal

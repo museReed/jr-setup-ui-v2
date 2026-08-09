@@ -1,6 +1,6 @@
-import type { Card } from "../../../domain/card.ts";
+import type { Capability, Card, CardCheck } from "../../../domain/card.ts";
 import { findCapabilities, findCapability } from "../../../domain/card.ts";
-import type { CheckId, CheckStatus } from "../../../domain/check.ts";
+import type { CheckStatus } from "../../../domain/check.ts";
 import type { CardDisplayState, ProgressState } from "../../../domain/progress.ts";
 import {
   canAdvance,
@@ -22,7 +22,6 @@ export interface TerminalEntry {
 
 export interface AppState {
   readonly card: Card;
-  readonly labels: Readonly<Record<string, string>>;
   readonly progress: ProgressState;
   readonly terminal: readonly TerminalEntry[];
   readonly runningAction: string | null;
@@ -33,16 +32,18 @@ export interface ButtonModel {
   readonly label: string;
   readonly tone: ButtonTone;
   readonly disabled: boolean;
+  // 驗證要指名是哪一格。少了它，卡片上有兩個驗證時第二格會拿隔壁格的參數去跑。
+  readonly checkId?: string;
 }
 
 export interface ChecklistRow {
   readonly id: string;
   readonly label: string;
-  readonly hint: string | undefined;
+  readonly hint: string;
   readonly checked: boolean;
-  // 程式判定的那幾格學生不能自己勾。能自動判定的就自動判定——勾選欄位越少，
-  // 學生越不會一排全勾。
   readonly readOnly: boolean;
+  // 這一格自己的按鈕。掛在格內而不是卡片底下——學生才不用自己配對哪顆帶他做哪一格。
+  readonly buttons: readonly ButtonModel[];
 }
 
 export interface ChecklistModel {
@@ -58,7 +59,8 @@ export interface CardViewModel {
   readonly display: CardDisplayState;
   readonly badge: { readonly text: string; readonly tone: BadgeTone };
   readonly checklist: ChecklistModel;
-  readonly buttons: readonly ButtonModel[];
+  // 卡片級的按鈕只剩「再 check 一次」——它真的作用在整張卡上。
+  readonly cardButtons: readonly ButtonModel[];
   readonly terminalLines: readonly TerminalLine[];
   readonly canAdvance: boolean;
   readonly canSkip: boolean;
@@ -106,7 +108,9 @@ export function cardModel(state: AppState): CardViewModel {
       total: rows.length,
       rows,
     },
-    buttons: buttons(state),
+    cardButtons: findCapability(card, "recheck") === undefined
+      ? []
+      : [{ action: "recheck", label: "再 check 一次", tone: "success", disabled: state.runningAction !== null }],
     terminalLines: state.terminal.map(
       (entry): TerminalLine => ({ text: entry.text, tone: TERMINAL_TONE[entry.kind] }),
     ),
@@ -120,19 +124,19 @@ export function cardModel(state: AppState): CardViewModel {
   };
 }
 
-// 程式判定的格與學生勾的格排在同一張清單裡。分兩塊的話，學生要自己把「未登入」
-// 跟下面那顆授權按鈕連起來——前一代 VM 實測就卡在這。
+// 程式判定的格與學生勾的格排在同一張清單裡，每一格帶著自己的按鈕。
 function checklistRows(state: AppState): ChecklistRow[] {
   const { card, progress } = state;
 
-  const system = card.checkIds.map((id: CheckId): ChecklistRow => {
-    const status = effectiveStatus(id, card, progress);
+  const system = card.checks.map((check): ChecklistRow => {
+    const status = effectiveStatus(check, progress);
     return {
-      id,
-      label: state.labels[id] ?? id,
+      id: check.id,
+      label: check.label,
       hint: STATUS_HINT[status],
       checked: status === "ok",
       readOnly: true,
+      buttons: rowButtons(check, state),
     };
   });
 
@@ -143,62 +147,67 @@ function checklistRows(state: AppState): ChecklistRow[] {
       hint: "這一格程式看不到，只有你看得到",
       checked: progress.eyeChecked.has(capability.id),
       readOnly: false,
+      buttons: [],
     }),
   );
 
   return [...system, ...eyes];
 }
 
-// ⚠️ 這裡只讀 capabilities，不問「這張卡是什麼種類」。前一代 17 處 kind 分岔
-// 就是從這種地方長出來的。
-function buttons(state: AppState): ButtonModel[] {
-  const { card, progress, runningAction } = state;
+// ⚠️ 只讀 capabilities，不問「這張卡是什麼種類」。
+function rowButtons(check: CardCheck, state: AppState): ButtonModel[] {
+  const { progress, runningAction } = state;
   const busy = runningAction !== null;
-  const list: ButtonModel[] = [];
+  const installed = progress.statuses.get(check.id) !== "missing";
 
-  const install = findCapability(card, "install");
-  if (install !== undefined) {
-    const installed = progress.statuses.get(card.checkIds[0] ?? "") !== "missing";
-    list.push({
-      action: install.action,
-      label: installed ? "重新安裝" : "安裝",
-      tone: installed ? "success" : "accent",
-      disabled: busy,
-    });
+  return check.capabilities.flatMap((capability): ButtonModel[] => {
+    if (capability.kind === "install") {
+      return [
+        {
+          action: capability.action,
+          label: installed ? "重新安裝" : "安裝",
+          tone: installed ? "success" : "accent",
+          disabled: busy,
+        },
+      ];
+    }
+
+    if (capability.kind === "login") {
+      return [
+        {
+          action: capability.action,
+          label: installed ? "重新登入" : "登入",
+          tone: installed ? "success" : "accent",
+          disabled: busy,
+        },
+      ];
+    }
+
+    if (capability.kind === "verify") {
+      // 沒驗過叫「開終端驗證」，驗過才叫「重跑驗證」——第一次就寫「重跑」，學生會
+      // 以為自己漏掉了前面某一步。
+      return [
+        {
+          action: capability.action,
+          label: labelForVerify(capability, progress.verified.has(check.id)),
+          tone: "accent",
+          disabled: busy,
+          checkId: check.id,
+        },
+      ];
+    }
+
+    return [];
+  });
+}
+
+function labelForVerify(
+  capability: Extract<Capability, { kind: "verify" }>,
+  ran: boolean,
+): string {
+  if (ran) {
+    return "重跑驗證";
   }
 
-  const login = findCapability(card, "login");
-  if (login !== undefined) {
-    const loggedIn = progress.statuses.get("claude-auth") !== "missing";
-    list.push({
-      action: login.action,
-      label: loggedIn ? "重新登入" : "登入",
-      tone: loggedIn ? "success" : "accent",
-      disabled: busy,
-    });
-  }
-
-  const verify = findCapability(card, "verify");
-  if (verify !== undefined) {
-    // 沒驗過叫「開終端驗證」，驗過才叫「重跑驗證」——第一次就寫「重跑」，學生會
-    // 以為自己漏掉了前面某一步。
-    const ran = card.checkIds.some((id) => progress.verified.has(id));
-    list.push({
-      action: verify.action,
-      label: ran ? "重跑驗證" : "開終端驗證",
-      tone: "accent",
-      disabled: busy,
-    });
-  }
-
-  if (findCapability(card, "recheck") !== undefined) {
-    list.push({
-      action: "recheck",
-      label: "再 check 一次",
-      tone: "success",
-      disabled: busy,
-    });
-  }
-
-  return list;
+  return capability.via === "terminal" ? "開終端驗證" : "驗證";
 }

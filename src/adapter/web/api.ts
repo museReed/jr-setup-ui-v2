@@ -13,7 +13,6 @@ export interface WireProgress {
 
 export interface StateBody {
   card: Card;
-  labels: Record<string, string>;
   progress: WireProgress;
 }
 
@@ -51,7 +50,7 @@ export const api = {
   run: (action: string) => post("/api/run", { action }) as Promise<{ runId: string }>,
   input: (runId: string, text: string) => post("/api/input", { runId, text }),
   cancel: (runId: string) => post("/api/cancel", { runId }),
-  verify: () => post("/api/verify"),
+  verify: (checkId: string) => post("/api/verify", { checkId }),
   eyeCheck: (id: string, checked: boolean) => post("/api/eye-check", { id, checked }),
   skip: () => post("/api/skip") as Promise<StateBody>,
   visit: () => post("/api/visit") as Promise<StateBody>,

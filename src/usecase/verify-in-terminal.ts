@@ -1,11 +1,7 @@
 import type { Card } from "../domain/card.ts";
-import type { Check, CheckId } from "../domain/check.ts";
+import type { Check } from "../domain/check.ts";
 import type { EnvProbe, TerminalOpener } from "./ports.ts";
 import { checkEnvironment } from "./check-environment.ts";
-
-export interface VerifyInTerminalOptions {
-  labelFor?: (checkId: CheckId) => string;
-}
 
 export interface VerifyInTerminalResult {
   // 學生有沒有真的走完那個視窗。沒走完就不該算驗證過，即使重新探測看起來是好的
@@ -19,11 +15,10 @@ export async function verifyInTerminal(
   card: Card,
   terminalOpener: TerminalOpener,
   envProbe: EnvProbe,
-  options: VerifyInTerminalOptions = {},
 ): Promise<VerifyInTerminalResult> {
   const outcome = await terminalOpener.open(action);
   return {
     completed: outcome.completed,
-    checks: await checkEnvironment(card, envProbe, options),
+    checks: await checkEnvironment(card, envProbe),
   };
 }

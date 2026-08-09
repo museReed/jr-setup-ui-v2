@@ -6,12 +6,13 @@ import type { ServerContext } from "../context.ts";
 import { readJson, readString, sendJson } from "../respond.ts";
 import { refreshChecks } from "./shared.ts";
 
-// 網頁只送 action 名字。這裡對照卡片宣告的能力——不在能力清單裡的動作一律拒絕，
+// 網頁只送 action 名字。這裡對照每一格宣告的能力——不在能力清單裡的動作一律拒絕，
 // 網頁就沒辦法叫伺服器跑任意指令。
 function isDeclared(ctx: ServerContext, action: string): boolean {
-  return (
-    findCapability(ctx.card, "install")?.action === action ||
-    findCapability(ctx.card, "login")?.action === action
+  return ctx.card.checks.some(
+    (check) =>
+      findCapability(check, "install")?.action === action ||
+      findCapability(check, "login")?.action === action,
   );
 }
 
