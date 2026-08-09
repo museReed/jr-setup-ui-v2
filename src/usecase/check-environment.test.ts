@@ -5,7 +5,8 @@ import { claudeCodeCard } from "../domain/catalog.ts";
 import { checkEnvironment } from "./check-environment.ts";
 import type { EnvProbe } from "./ports.ts";
 
-test("逐格探測，標籤直接來自卡片定義", async () => {
+// 只回 id 與狀態：標籤是呈現的事，伺服器不必知道畫面上那一格叫什麼。
+test("逐格探測，只回 id 與狀態", async () => {
   const probed: string[] = [];
   const envProbe: EnvProbe = {
     async probe(checkId) {
@@ -18,7 +19,7 @@ test("逐格探測，標籤直接來自卡片定義", async () => {
 
   assert.deepEqual(probed, ["claude", "claude-auth"]);
   assert.deepEqual(checks, [
-    { id: "claude", label: "Claude Code CLI", status: "ok" },
-    { id: "claude-auth", label: "Claude Code 登入狀態", status: "missing" },
+    { id: "claude", status: "ok" },
+    { id: "claude-auth", status: "missing" },
   ]);
 });

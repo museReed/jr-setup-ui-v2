@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 
 import { findCapability } from "../../../domain/card.ts";
+import { K, type MessageKey } from "../../../domain/copy-keys.ts";
 import { verifyInTerminal } from "../../../usecase/verify-in-terminal.ts";
 import type { ServerContext } from "../context.ts";
 import { readJson, readString, sendJson } from "../respond.ts";
@@ -37,7 +38,7 @@ async function runVerify(
   action: string,
   checkId: string,
 ): Promise<void> {
-  say(ctx, "已開啟一個新的終端視窗，照裡面的字做完再回來。", "line");
+  say(ctx, K.run.verifyOpened, false);
 
   // 開完視窗就拿不到裡面的輸出了，結果只能靠重新探測——這是設計，不是偷懶。
   const { completed, checks } = await verifyInTerminal(
@@ -50,11 +51,7 @@ async function runVerify(
   // ⛔ 沒走完就不是驗證通過。探測看的是「檔案在不在」，那本來就是好的——拿它
   // 當驗證結果，就是把「裝好」當成「生效」，綠燈長在沒做過的事情上。
   if (!completed) {
-    say(
-      ctx,
-      "那個終端視窗沒有走完（被關掉，或超過三分鐘沒動作）。這次不算驗證通過，可以再按一次。",
-      "error",
-    );
+    say(ctx, K.run.verifyAbandoned, true);
     ctx.bus.publish({ type: "run-done", runId: "verify", success: false });
     return;
   }
@@ -66,10 +63,7 @@ async function runVerify(
   ctx.bus.publish({ type: "run-done", runId: "verify", success: status === "ok" });
 }
 
-function say(ctx: ServerContext, text: string, kind: "line" | "error"): void {
-  ctx.bus.publish({
-    type: "run-line",
-    runId: "verify",
-    event: { kind, text, at: ctx.clock.now() },
-  });
+// 我們自己的話送代號，不送翻好的字——伺服器不必知道使用者用哪個語言。
+function say(ctx: ServerContext, messageKey: MessageKey, failed: boolean): void {
+  ctx.bus.publish({ type: "notice", runId: "verify", messageKey, failed });
 }

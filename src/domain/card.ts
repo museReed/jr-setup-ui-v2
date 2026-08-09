@@ -1,4 +1,5 @@
 import type { CheckId } from "./check.ts";
+import type { MessageKey } from "./copy-keys.ts";
 
 export type CardId = string;
 export type SectionId = string;
@@ -9,7 +10,7 @@ export type Capability =
   | { kind: "login"; action: string }
   // walkthrough：這一格有沒有編過「怎麼做」的教學。明寫在卡片定義裡而不是靠 id
   // 對應猜——沒編過的格子不該畫按鈕，按出一個空彈窗比沒有按鈕更讓人困惑。
-  | { kind: "eye-check"; id: string; prompt: string; walkthrough?: string }
+  | { kind: "eye-check"; id: string; promptKey: MessageKey; walkthrough?: string }
   | { kind: "recheck" };
 
 // 一張卡上的一格。
@@ -19,14 +20,15 @@ export type Capability =
 // 甚至完全沒有入口，而那一列還寫著「按下面的重跑驗證」（指向一顆會開錯終端的按鈕）。
 export interface CardCheck {
   id: CheckId;
-  label: string;
+  // 代號不是文字——domain 不知道畫面上寫什麼，只知道要指哪一句。
+  labelKey: MessageKey;
   capabilities: Capability[];
 }
 
 export interface Card {
   id: CardId;
   sectionId: SectionId;
-  label: string;
+  labelKey: MessageKey;
   checks: CardCheck[];
   // 卡片級的能力：整張卡重新檢查、以及沒有對應某一格的人工勾選。
   capabilities: Capability[];

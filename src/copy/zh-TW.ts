@@ -1,0 +1,61 @@
+import type { MessageKey } from "../domain/copy-keys.ts";
+
+// ⚠️ 型別是 Record<MessageKey, string> 不是 Partial：漏翻一個代號就是 typecheck 紅，
+// 不是上線之後畫面上冒出一段別的語言。
+//
+// （反過來不成立：多出來的代號不會報錯。刪掉一格時記得順手清這裡的孤兒條目。）
+export const zhTW: Record<MessageKey, string> = {
+  "check.claude": "Claude Code CLI",
+  "check.claude-auth": "Claude Code 登入狀態",
+
+  "eye.claude-fullscreen":
+    "第一次跑起來時，畫面問你要用哪種顯示模式——選好了就勾這格",
+
+  "badge.untouched": "還沒開始",
+  "badge.visited-incomplete": "進行中",
+  "badge.complete": "已完成",
+  "badge.failed": "驗證沒過",
+
+  "status.missing": "還沒安裝",
+  // 中間那一態是整套設計的重點：結構齊全不等於行為生效。
+  "status.unverified": "裝好了，還沒驗過真的生效",
+  "status.ok": "驗過生效",
+  "status.failed": "驗過，但沒通過",
+
+  "action.install": "安裝",
+  "action.reinstall": "重新安裝",
+  "action.login": "登入",
+  "action.relogin": "重新登入",
+  "action.verify-terminal": "開終端驗證",
+  "action.verify-auto": "驗證",
+  "action.rerun-verify": "重跑驗證",
+  "action.recheck": "再 check 一次",
+
+  "card.claude": "Claude Code",
+  "card.checklist-title": "這張卡要完成的事",
+  "card.advance-done": "這張做完了",
+  "card.advance-loose": "可以往下一張，但這張還沒完成",
+  "card.advance-blocked": "上面幾格做完才能往下一張",
+  "card.next": "下一張",
+  "card.skip": "先跳過這張",
+  "card.help": "怎麼做",
+
+  "hint.manual-only": "這一格程式看不到，只有你看得到",
+
+  "terminal.title": "現在正在做什麼",
+  "terminal.empty": "按上面的按鈕，這裡會即時顯示進度。",
+
+  "walkthrough.title": "怎麼做",
+  "walkthrough.close": "關閉",
+  "walkthrough.see": "會看到",
+  "walkthrough.warn": "別做",
+  "walkthrough.miss": "沒發生的話",
+
+  "run.rechecking": "重新檢查環境狀態…",
+  "run.recheck-done": "檢查完成，狀態已更新。",
+  "run.done": "完成",
+  "run.failed": "沒有成功",
+  "run.verify-opened": "已開啟一個新的終端視窗，照裡面的字做完再回來。",
+  "run.verify-abandoned":
+    "那個終端視窗沒有走完（被關掉，或超過三分鐘沒動作）。這次不算驗證通過，可以再按一次。",
+};

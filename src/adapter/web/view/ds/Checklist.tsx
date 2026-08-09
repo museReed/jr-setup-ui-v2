@@ -31,7 +31,9 @@ export interface CheckItemProps {
   // 哪顆按鈕帶他做哪一格。
   actions?: ComponentChildren;
   // 有編過教學才給這顆。沒有的話不畫——按出一個空彈窗比沒有按鈕更讓人困惑。
+  // 文字從外面帶進來：ds/ 這一層不碰翻譯，它只知道設計系統的結構契約。
   onHelp?: (() => void) | undefined;
+  helpLabel?: string;
   onChange?: ((checked: boolean) => void) | undefined;
 }
 
@@ -43,6 +45,7 @@ export function CheckItem({
   readOnly = false,
   actions,
   onHelp,
+  helpLabel = "?",
   onChange,
 }: CheckItemProps) {
   return (
@@ -84,8 +87,8 @@ export function CheckItem({
             <button
               type="button"
               class="check-help"
-              aria-label="怎麼做"
-              title="怎麼做"
+              aria-label={helpLabel}
+              title={helpLabel}
               onClick={onHelp}
             >
               ?

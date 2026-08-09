@@ -1,5 +1,7 @@
 import { useState } from "preact/hooks";
 
+import { copy } from "../../../copy/index.ts";
+import { K, type MessageKey } from "../../../domain/copy-keys.ts";
 import { renderMock, type MockVisual } from "./mocks.ts";
 
 // 「怎麼做」彈窗。
@@ -30,10 +32,10 @@ export interface WalkthroughDoc {
   steps: WalkthroughStep[];
 }
 
-const KID_LABEL: Readonly<Record<WalkthroughKid["kind"], string>> = {
-  see: "會看到",
-  warn: "別做",
-  miss: "沒發生的話",
+const KID_KEY: Readonly<Record<WalkthroughKid["kind"], MessageKey>> = {
+  see: K.walkthrough.see,
+  warn: K.walkthrough.warn,
+  miss: K.walkthrough.miss,
 };
 
 export function Walkthrough({
@@ -49,12 +51,17 @@ export function Walkthrough({
         class="wt-panel"
         role="dialog"
         aria-modal="true"
-        aria-label="怎麼做"
+        aria-label={copy(K.walkthrough.title)}
         onClick={(event) => event.stopPropagation()}
       >
         <header class="wt-head">
-          <strong>怎麼做</strong>
-          <button type="button" class="wt-close" onClick={onClose} aria-label="關閉">
+          <strong>{copy(K.walkthrough.title)}</strong>
+          <button
+            type="button"
+            class="wt-close"
+            onClick={onClose}
+            aria-label={copy(K.walkthrough.close)}
+          >
             ×
           </button>
         </header>
@@ -94,7 +101,7 @@ function Kid({ kid }: { kid: WalkthroughKid }) {
   return (
     <div class={`wt-kid wt-kid--${kid.kind}`}>
       <button type="button" class="wt-kid-head" onClick={() => setOpen(!open)}>
-        <span class="wt-kid-tag">{KID_LABEL[kid.kind]}</span>
+        <span class="wt-kid-tag">{copy(KID_KEY[kid.kind])}</span>
         <span>{kid.title}</span>
         <span class="wt-kid-caret">{open ? "−" : "+"}</span>
       </button>

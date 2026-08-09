@@ -1,11 +1,16 @@
 import type { ServerResponse } from "node:http";
 
+import type { MessageKey } from "../../domain/copy-keys.ts";
 import type { RunEvent } from "../../usecase/ports.ts";
 import type { WireProgress } from "./state-store.ts";
 
-// 網頁要即時知道兩件事：終端多了一行字，以及狀態變了。兩種都走同一條 SSE。
+// 網頁要即時知道三件事：指令吐了一行字、我們自己要講一句話、狀態變了。
+//
+// ⚠️ 指令的輸出是原文（`npm install…` 那些），照原樣送；**我們自己的話一律送代號**。
+// 送翻好的字的話，伺服器就得知道使用者用哪個語言——那不是它該知道的事。
 export type ServerEvent =
   | { type: "run-line"; runId: string; event: RunEvent }
+  | { type: "notice"; runId: string; messageKey: MessageKey; failed: boolean }
   | { type: "run-done"; runId: string; success: boolean }
   | { type: "state"; progress: WireProgress };
 

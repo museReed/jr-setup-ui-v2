@@ -1,5 +1,6 @@
 import type { Card } from "../../domain/card.ts";
 import type { CheckId, CheckStatus } from "../../domain/check.ts";
+import type { MessageKey } from "../../domain/copy-keys.ts";
 import type { RunEvent } from "../../usecase/ports.ts";
 
 export interface WireProgress {
@@ -18,6 +19,8 @@ export interface StateBody {
 
 export type ServerEvent =
   | { type: "run-line"; runId: string; event: RunEvent }
+  // 伺服器自己的話只送代號，不送翻好的字——它不必知道使用者用哪個語言。
+  | { type: "notice"; runId: string; messageKey: MessageKey; failed: boolean }
   | { type: "run-done"; runId: string; success: boolean }
   | { type: "state"; progress: WireProgress };
 

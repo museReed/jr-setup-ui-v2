@@ -1,13 +1,14 @@
 import type { Card } from "./card.ts";
+import { K } from "./copy-keys.ts";
 
 export const claudeCodeCard: Card = {
   id: "claude",
   sectionId: "env",
-  label: "Claude Code",
+  labelKey: K.card.claude,
   checks: [
     {
       id: "claude",
-      label: "Claude Code CLI",
+      labelKey: K.check.claude,
       capabilities: [
         { kind: "install", action: "install-claude" },
         // 開真的終端跑一次才算數。探測只看得到「檔案在不在」，看不到「跑起來會怎樣」。
@@ -16,7 +17,7 @@ export const claudeCodeCard: Card = {
     },
     {
       id: "claude-auth",
-      label: "Claude Code 登入狀態",
+      labelKey: K.check.claudeAuth,
       // 登入沒有另外的行為驗證：`claude auth status` 問的就是行為本身。
       capabilities: [{ kind: "login", action: "login-claude" }],
     },
@@ -25,7 +26,7 @@ export const claudeCodeCard: Card = {
     {
       kind: "eye-check",
       id: "eye-claude-fullscreen",
-      prompt: "第一次跑起來時，畫面問你要用哪種顯示模式——選好了就勾這格",
+      promptKey: K.eye.claudeFullscreen,
       walkthrough: "fullscreen-copy",
     },
     { kind: "recheck" },

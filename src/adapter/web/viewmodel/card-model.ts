@@ -1,6 +1,8 @@
 import type { Capability, Card, CardCheck } from "../../../domain/card.ts";
 import { findCapabilities, findCapability } from "../../../domain/card.ts";
 import type { CheckStatus } from "../../../domain/check.ts";
+import { K, type MessageKey } from "../../../domain/copy-keys.ts";
+import { copy } from "../../../copy/index.ts";
 import type { CardDisplayState, ProgressState } from "../../../domain/progress.ts";
 import {
   canAdvance,
@@ -17,13 +19,19 @@ import type {
   VerifiedBy,
 } from "../view/ds/index.ts";
 
-// 終端裡的一行「發生了什麼」。store 只記語意，顏色是呈現決定，留給 ViewModel。
+// 終端裡的一行「發生了什麼」。
+//
+// 指令吐出來的是原文（照原樣留著，那是真實輸出）；我們自己的話是代號，這一層才
+// 翻成字。顏色也在這一層決定——store 只記語意。
 export type TerminalEntryKind = "output" | "error" | "note" | "done-ok" | "done-fail";
 
-export interface TerminalEntry {
-  readonly text: string;
-  readonly kind: TerminalEntryKind;
-}
+export type TerminalEntry =
+  | { readonly source: "output"; readonly text: string; readonly kind: TerminalEntryKind }
+  | {
+      readonly source: "notice";
+      readonly messageKey: MessageKey;
+      readonly kind: TerminalEntryKind;
+    };
 
 export interface AppState {
   readonly card: Card;
@@ -77,20 +85,18 @@ export interface CardViewModel {
   readonly advanceHint: string;
 }
 
-const BADGES: Readonly<Record<CardDisplayState, { text: string; tone: BadgeTone }>> = {
-  untouched: { text: "還沒開始", tone: "neutral" },
-  "visited-incomplete": { text: "進行中", tone: "warn" },
-  complete: { text: "已完成", tone: "ok" },
-  failed: { text: "驗證沒過", tone: "bad" },
+const BADGES: Readonly<Record<CardDisplayState, { key: MessageKey; tone: BadgeTone }>> = {
+  untouched: { key: K.badge.untouched, tone: "neutral" },
+  "visited-incomplete": { key: K.badge.visitedIncomplete, tone: "warn" },
+  complete: { key: K.badge.complete, tone: "ok" },
+  failed: { key: K.badge.failed, tone: "bad" },
 };
 
-const STATUS_HINT: Readonly<Record<CheckStatus, string>> = {
-  missing: "還沒安裝",
-  // 中間那一態是整套設計的重點：結構齊全不等於行為生效。二態的世界裡它會是綠燈，
-  // 學生連重跑的機會都沒有。
-  unverified: "裝好了，還沒驗過真的生效",
-  ok: "驗過生效",
-  failed: "驗過，但沒通過",
+const STATUS_HINT: Readonly<Record<CheckStatus, MessageKey>> = {
+  missing: K.status.missing,
+  unverified: K.status.unverified,
+  ok: K.status.ok,
+  failed: K.status.failed,
 };
 
 const TERMINAL_TONE: Readonly<Record<TerminalEntryKind, TerminalTone>> = {
@@ -107,30 +113,45 @@ export function cardModel(state: AppState): CardViewModel {
   const rows = checklistRows(state);
   const advance = canAdvance(card, progress);
 
+  const badge = BADGES[display];
+
   return {
-    title: card.label,
+    title: copy(card.labelKey),
     logoId: "logo-claude",
     display,
-    badge: BADGES[display],
+    badge: { text: copy(badge.key), tone: badge.tone },
     checklist: {
-      title: "這張卡要完成的事",
+      title: copy(K.card.checklistTitle),
       done: rows.filter((row) => row.checked).length,
       total: rows.length,
       rows,
     },
-    cardButtons: findCapability(card, "recheck") === undefined
-      ? []
-      : [{ action: "recheck", label: "再 check 一次", tone: "success", disabled: state.runningAction !== null }],
+    cardButtons:
+      findCapability(card, "recheck") === undefined
+        ? []
+        : [
+            {
+              action: "recheck",
+              label: copy(K.action.recheck),
+              tone: "success",
+              disabled: state.runningAction !== null,
+            },
+          ],
     terminalLines: state.terminal.map(
-      (entry): TerminalLine => ({ text: entry.text, tone: TERMINAL_TONE[entry.kind] }),
+      (entry): TerminalLine => ({
+        text: entry.source === "output" ? entry.text : copy(entry.messageKey),
+        tone: TERMINAL_TONE[entry.kind],
+      }),
     ),
     canAdvance: advance,
     canSkip: canSkip(card, progress),
-    advanceHint: isComplete(card, progress)
-      ? "這張做完了"
-      : advance
-        ? "可以往下一張，但這張還沒完成"
-        : "上面幾格做完才能往下一張",
+    advanceHint: copy(
+      isComplete(card, progress)
+        ? K.card.advanceDone
+        : advance
+          ? K.card.advanceLoose
+          : K.card.advanceBlocked,
+    ),
   };
 }
 
@@ -142,8 +163,8 @@ function checklistRows(state: AppState): ChecklistRow[] {
     const status = effectiveStatus(check, progress);
     return {
       id: check.id,
-      label: check.label,
-      hint: STATUS_HINT[status],
+      label: copy(check.labelKey),
+      hint: copy(STATUS_HINT[status]),
       checked: status === "ok",
       readOnly: true,
       verifiedBy: "system",
@@ -155,8 +176,8 @@ function checklistRows(state: AppState): ChecklistRow[] {
   const eyes = findCapabilities(card, "eye-check").map(
     (capability): ChecklistRow => ({
       id: capability.id,
-      label: capability.prompt,
-      hint: "這一格程式看不到，只有你看得到",
+      label: copy(capability.promptKey),
+      hint: copy(K.hint.manualOnly),
       checked: progress.eyeChecked.has(capability.id),
       readOnly: false,
       verifiedBy: "manual",
@@ -179,7 +200,7 @@ function rowButtons(check: CardCheck, state: AppState): ButtonModel[] {
       return [
         {
           action: capability.action,
-          label: installed ? "重新安裝" : "安裝",
+          label: copy(installed ? K.action.reinstall : K.action.install),
           tone: installed ? "success" : "accent",
           disabled: busy,
         },
@@ -190,7 +211,7 @@ function rowButtons(check: CardCheck, state: AppState): ButtonModel[] {
       return [
         {
           action: capability.action,
-          label: installed ? "重新登入" : "登入",
+          label: copy(installed ? K.action.relogin : K.action.login),
           tone: installed ? "success" : "accent",
           disabled: busy,
         },
@@ -220,8 +241,10 @@ function labelForVerify(
   ran: boolean,
 ): string {
   if (ran) {
-    return "重跑驗證";
+    return copy(K.action.rerunVerify);
   }
 
-  return capability.via === "terminal" ? "開終端驗證" : "驗證";
+  return copy(
+    capability.via === "terminal" ? K.action.verifyTerminal : K.action.verifyAuto,
+  );
 }

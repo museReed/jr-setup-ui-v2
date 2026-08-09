@@ -3,6 +3,7 @@ import test from "node:test";
 
 import { claudeCodeCard } from "../../../domain/catalog.ts";
 import type { CheckId, CheckStatus } from "../../../domain/check.ts";
+import { K } from "../../../domain/copy-keys.ts";
 import type { ProgressState } from "../../../domain/progress.ts";
 import { cardModel, type AppState } from "./card-model.ts";
 
@@ -90,13 +91,14 @@ test("程式判定的格唯讀，只有眼睛那格可以勾", () => {
   );
 });
 
-test("終端的語意由 store 給，顏色由 ViewModel 決定", () => {
+// 指令輸出照原樣、我們自己的話翻代號；顏色兩者都由 ViewModel 決定。
+test("終端：指令輸出留原文，我們的話從代號翻出來", () => {
   const model = cardModel({
     ...appState({ claude: "ok" }, {}),
     terminal: [
-      { text: "跑起來了", kind: "output" },
-      { text: "找不到指令", kind: "error" },
-      { text: "完成", kind: "done-ok" },
+      { source: "output", text: "added 1 package in 3s", kind: "output" },
+      { source: "output", text: "command not found", kind: "error" },
+      { source: "notice", messageKey: K.run.done, kind: "done-ok" },
     ],
   });
 
@@ -104,6 +106,8 @@ test("終端的語意由 store 給，顏色由 ViewModel 決定", () => {
     model.terminalLines.map((line) => line.tone),
     ["plain", "err", "ok"],
   );
+  assert.equal(model.terminalLines[0]?.text, "added 1 package in 3s");
+  assert.equal(model.terminalLines[2]?.text, "完成");
 });
 
 function appState(

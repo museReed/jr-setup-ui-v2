@@ -1,6 +1,8 @@
 import { useEffect, useState } from "preact/hooks";
 
 import { api } from "../api.ts";
+import { copy } from "../../../copy/index.ts";
+import { K } from "../../../domain/copy-keys.ts";
 import type { ButtonModel } from "../viewmodel/card-model.ts";
 import { cardModel } from "../viewmodel/card-model.ts";
 import type { Store } from "../store.ts";
@@ -43,11 +45,11 @@ export function App({ store }: { store: Store }) {
         footer={
           <>
             <span class="advance-hint">{model.advanceHint}</span>
-            <Button disabled={!model.canAdvance}>下一張</Button>
+            <Button disabled={!model.canAdvance}>{copy(K.card.next)}</Button>
             {/* 逆口不慶祝也不算完成——慶祝一件沒做成的事會讓學生以為自己過了。 */}
             {model.canSkip ? (
               <Button tone="success" onClick={() => void store.skip()}>
-                先跳過這張
+                {copy(K.card.skip)}
               </Button>
             ) : null}
           </>
@@ -72,6 +74,7 @@ export function App({ store }: { store: Store }) {
                   ? undefined
                   : () => void openWalkthrough(row.walkthroughId!, setWalkthrough)
               }
+              helpLabel={copy(K.card.help)}
               onChange={(checked) => void store.toggleEye(row.id, checked)}
             />
           ))}
@@ -81,9 +84,9 @@ export function App({ store }: { store: Store }) {
       </Card>
 
       <Terminal
-        title="現在正在做什麼"
+        title={copy(K.terminal.title)}
         lines={model.terminalLines}
-        emptyHint="按上面的按鈕，這裡會即時顯示進度。"
+        emptyHint={copy(K.terminal.empty)}
       />
 
       {walkthrough === null ? null : (

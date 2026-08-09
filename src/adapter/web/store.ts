@@ -1,3 +1,4 @@
+import { K } from "../../domain/copy-keys.ts";
 import type { ProgressState } from "../../domain/progress.ts";
 import { api, type ServerEvent, type StateBody, type WireProgress } from "./api.ts";
 import type { AppState, TerminalEntry } from "./viewmodel/card-model.ts";
@@ -15,7 +16,13 @@ export interface Store {
 
 export function createStore(): Store {
   let state: AppState = {
-    card: { id: "", sectionId: "", label: "載入中…", checks: [], capabilities: [] },
+    card: {
+      id: "",
+      sectionId: "",
+      labelKey: K.card.checklistTitle,
+      checks: [],
+      capabilities: [],
+    },
     progress: emptyProgress(),
     terminal: [],
     runningAction: null,
@@ -31,9 +38,9 @@ export function createStore(): Store {
     set({ card: body.card, progress: hydrate(body.progress) });
   };
 
-  // store 只記「發生了什麼」，不記顏色——顏色是呈現決定，留給 ViewModel。
-  const say = (text: string, kind: TerminalEntry["kind"]): void => {
-    set({ terminal: [...state.terminal, { text, kind }] });
+  // store 只記「發生了什麼」，不記顏色也不記翻好的字——兩者都是呈現決定。
+  const push = (entry: TerminalEntry): void => {
+    set({ terminal: [...state.terminal, entry] });
   };
 
   api.stream((event: ServerEvent) => {
@@ -42,13 +49,31 @@ export function createStore(): Store {
       return;
     }
 
+    // 指令吐出來的原文照原樣留著——那是真實輸出，翻譯它反而看不出機器說了什麼。
     if (event.type === "run-line") {
       if (event.event.kind === "exit") return;
-      say(event.event.text, event.event.kind === "error" ? "error" : "output");
+      push({
+        source: "output",
+        text: event.event.text,
+        kind: event.event.kind === "error" ? "error" : "output",
+      });
       return;
     }
 
-    say(event.success ? "完成" : "沒有成功", event.success ? "done-ok" : "done-fail");
+    if (event.type === "notice") {
+      push({
+        source: "notice",
+        messageKey: event.messageKey,
+        kind: event.failed ? "error" : "note",
+      });
+      return;
+    }
+
+    push({
+      source: "notice",
+      messageKey: event.success ? K.run.done : K.run.failed,
+      kind: event.success ? "done-ok" : "done-fail",
+    });
     set({ runningAction: null });
   });
 
@@ -66,9 +91,9 @@ export function createStore(): Store {
 
     async runAction(action, checkId) {
       if (action === "recheck") {
-        say("重新檢查環境狀態…", "note");
+        push({ source: "notice", messageKey: K.run.rechecking, kind: "note" });
         applyBody(await api.recheck());
-        say("檢查完成，狀態已更新。", "note");
+        push({ source: "notice", messageKey: K.run.recheckDone, kind: "note" });
         return;
       }
 
