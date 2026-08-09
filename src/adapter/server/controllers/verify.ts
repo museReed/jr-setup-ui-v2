@@ -42,9 +42,29 @@ async function runVerify(ctx: ServerContext, action: string): Promise<void> {
   });
 
   // 開完視窗就拿不到裡面的輸出了，結果只能靠重新探測——這是設計，不是偷懶。
-  const checks = await verifyInTerminal(action, ctx.card, ctx.terminal, ctx.probe, {
-    labelFor: (id) => CLAUDE_CHECK_LABELS[id] ?? id,
-  });
+  const { completed, checks } = await verifyInTerminal(
+    action,
+    ctx.card,
+    ctx.terminal,
+    ctx.probe,
+    { labelFor: (id) => CLAUDE_CHECK_LABELS[id] ?? id },
+  );
+
+  // ⛔ 沒走完就不是驗證通過。探測看的是「檔案在不在」，那本來就是好的——拿它
+  // 當驗證結果，就是把「裝好」當成「生效」，綠燈長在沒做過的事情上。
+  if (!completed) {
+    ctx.bus.publish({
+      type: "run-line",
+      runId: "verify",
+      event: {
+        kind: "error",
+        text: "那個終端視窗沒有走完（被關掉，或超過三分鐘沒動作）。這次不算驗證通過，可以再按一次。",
+        at: ctx.clock.now(),
+      },
+    });
+    ctx.bus.publish({ type: "run-done", runId: "verify", success: false });
+    return;
+  }
 
   for (const check of checks) {
     ctx.store.markVerified(check.id, check.status === "ok");

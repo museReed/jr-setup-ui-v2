@@ -9,99 +9,144 @@ import {
   effectiveStatus,
   isComplete,
 } from "../../../domain/progress.ts";
+import type { BadgeTone } from "../view/ds/Card.tsx";
+import type { ButtonTone, TerminalLine, TerminalTone } from "../view/ds/index.ts";
+
+// 終端裡的一行「發生了什麼」。store 只記語意，顏色是呈現決定，留給 ViewModel。
+export type TerminalEntryKind = "output" | "error" | "note" | "done-ok" | "done-fail";
+
+export interface TerminalEntry {
+  readonly text: string;
+  readonly kind: TerminalEntryKind;
+}
 
 export interface AppState {
   readonly card: Card;
   readonly labels: Readonly<Record<string, string>>;
   readonly progress: ProgressState;
-  readonly terminalLines: readonly string[];
+  readonly terminal: readonly TerminalEntry[];
   readonly runningAction: string | null;
 }
 
 export interface ButtonModel {
   readonly action: string;
   readonly label: string;
-  readonly kind: "primary" | "ghost";
+  readonly tone: ButtonTone;
   readonly disabled: boolean;
 }
 
 export interface ChecklistRow {
-  readonly id: CheckId;
+  readonly id: string;
   readonly label: string;
-  readonly status: CheckStatus;
+  readonly hint: string | undefined;
   readonly checked: boolean;
+  // 程式判定的那幾格學生不能自己勾。能自動判定的就自動判定——勾選欄位越少，
+  // 學生越不會一排全勾。
+  readonly readOnly: boolean;
 }
 
-export interface EyeCheckRow {
-  readonly id: string;
-  readonly prompt: string;
-  readonly checked: boolean;
+export interface ChecklistModel {
+  readonly title: string;
+  readonly done: number;
+  readonly total: number;
+  readonly rows: readonly ChecklistRow[];
 }
 
 export interface CardViewModel {
   readonly title: string;
+  readonly logoId: string;
   readonly display: CardDisplayState;
-  readonly badge: string;
-  readonly checklist: readonly ChecklistRow[];
-  readonly eyeChecks: readonly EyeCheckRow[];
+  readonly badge: { readonly text: string; readonly tone: BadgeTone };
+  readonly checklist: ChecklistModel;
   readonly buttons: readonly ButtonModel[];
+  readonly terminalLines: readonly TerminalLine[];
   readonly canAdvance: boolean;
   readonly canSkip: boolean;
   readonly advanceHint: string;
 }
 
-const BADGES: Readonly<Record<CardDisplayState, string>> = {
-  untouched: "還沒開始",
-  "visited-incomplete": "進行中",
-  complete: "已完成",
-  failed: "驗證沒過",
+const BADGES: Readonly<Record<CardDisplayState, { text: string; tone: BadgeTone }>> = {
+  untouched: { text: "還沒開始", tone: "neutral" },
+  "visited-incomplete": { text: "進行中", tone: "warn" },
+  complete: { text: "已完成", tone: "ok" },
+  failed: { text: "驗證沒過", tone: "bad" },
 };
 
-const STATUS_TEXT: Readonly<Record<CheckStatus, string>> = {
-  missing: "未安裝",
-  unverified: "裝了，還沒驗過生效",
-  ok: "已驗證",
-  failed: "驗證沒過",
+const STATUS_HINT: Readonly<Record<CheckStatus, string>> = {
+  missing: "還沒安裝",
+  // 中間那一態是整套設計的重點：結構齊全不等於行為生效。二態的世界裡它會是綠燈，
+  // 學生連重跑的機會都沒有。
+  unverified: "裝好了，還沒驗過真的生效",
+  ok: "驗過生效",
+  failed: "驗過，但沒通過",
 };
 
-export function statusText(status: CheckStatus): string {
-  return STATUS_TEXT[status];
-}
+const TERMINAL_TONE: Readonly<Record<TerminalEntryKind, TerminalTone>> = {
+  output: "plain",
+  error: "err",
+  note: "dim",
+  "done-ok": "ok",
+  "done-fail": "err",
+};
 
-// 純函式：state 進去，「畫面該長什麼樣」出來。不碰 DOM、不發請求，所以可以在
-// Node 裡直接測。
 export function cardModel(state: AppState): CardViewModel {
   const { card, progress } = state;
   const display = cardDisplayState(card, progress);
-  const complete = isComplete(card, progress);
+  const rows = checklistRows(state);
+  const advance = canAdvance(card, progress);
 
   return {
     title: card.label,
+    logoId: "logo-claude",
     display,
     badge: BADGES[display],
-    checklist: card.checkIds.map((id) => {
-      const status = effectiveStatus(id, card, progress);
-      return {
-        id,
-        label: state.labels[id] ?? id,
-        status,
-        checked: status === "ok",
-      };
-    }),
-    eyeChecks: findCapabilities(card, "eye-check").map((capability) => ({
-      id: capability.id,
-      prompt: capability.prompt,
-      checked: progress.eyeChecked.has(capability.id),
-    })),
+    checklist: {
+      title: "這張卡要完成的事",
+      done: rows.filter((row) => row.checked).length,
+      total: rows.length,
+      rows,
+    },
     buttons: buttons(state),
-    canAdvance: canAdvance(card, progress),
+    terminalLines: state.terminal.map(
+      (entry): TerminalLine => ({ text: entry.text, tone: TERMINAL_TONE[entry.kind] }),
+    ),
+    canAdvance: advance,
     canSkip: canSkip(card, progress),
-    advanceHint: complete
+    advanceHint: isComplete(card, progress)
       ? "這張做完了"
-      : canAdvance(card, progress)
+      : advance
         ? "可以往下一張，但這張還沒完成"
-        : "做完上面幾格才能往下一張",
+        : "上面幾格做完才能往下一張",
   };
+}
+
+// 程式判定的格與學生勾的格排在同一張清單裡。分兩塊的話，學生要自己把「未登入」
+// 跟下面那顆授權按鈕連起來——前一代 VM 實測就卡在這。
+function checklistRows(state: AppState): ChecklistRow[] {
+  const { card, progress } = state;
+
+  const system = card.checkIds.map((id: CheckId): ChecklistRow => {
+    const status = effectiveStatus(id, card, progress);
+    return {
+      id,
+      label: state.labels[id] ?? id,
+      hint: STATUS_HINT[status],
+      checked: status === "ok",
+      readOnly: true,
+    };
+  });
+
+  const eyes = findCapabilities(card, "eye-check").map(
+    (capability): ChecklistRow => ({
+      id: capability.id,
+      label: capability.prompt,
+      hint: "這一格程式看不到，只有你看得到",
+      checked: progress.eyeChecked.has(capability.id),
+      readOnly: false,
+    }),
+  );
+
+  return [...system, ...eyes];
 }
 
 // ⚠️ 這裡只讀 capabilities，不問「這張卡是什麼種類」。前一代 17 處 kind 分岔
@@ -113,35 +158,35 @@ function buttons(state: AppState): ButtonModel[] {
 
   const install = findCapability(card, "install");
   if (install !== undefined) {
-    const done = progress.statuses.get(card.checkIds[0] ?? "") !== "missing";
+    const installed = progress.statuses.get(card.checkIds[0] ?? "") !== "missing";
     list.push({
       action: install.action,
-      label: done ? "重新安裝" : "安裝",
-      kind: done ? "ghost" : "primary",
+      label: installed ? "重新安裝" : "安裝",
+      tone: installed ? "success" : "accent",
       disabled: busy,
     });
   }
 
   const login = findCapability(card, "login");
   if (login !== undefined) {
-    const loggedIn = progress.statuses.get("claude-auth") === "ok";
+    const loggedIn = progress.statuses.get("claude-auth") !== "missing";
     list.push({
       action: login.action,
       label: loggedIn ? "重新登入" : "登入",
-      kind: loggedIn ? "ghost" : "primary",
+      tone: loggedIn ? "success" : "accent",
       disabled: busy,
     });
   }
 
   const verify = findCapability(card, "verify");
   if (verify !== undefined) {
-    // 沒驗過叫「驗證」，驗過才叫「重跑驗證」——第一次就寫「重跑」，學生會以為
-    // 自己漏掉了前面某一步。
+    // 沒驗過叫「開終端驗證」，驗過才叫「重跑驗證」——第一次就寫「重跑」，學生會
+    // 以為自己漏掉了前面某一步。
     const ran = card.checkIds.some((id) => progress.verified.has(id));
     list.push({
       action: verify.action,
       label: ran ? "重跑驗證" : "開終端驗證",
-      kind: "primary",
+      tone: "accent",
       disabled: busy,
     });
   }
@@ -150,7 +195,7 @@ function buttons(state: AppState): ButtonModel[] {
     list.push({
       action: "recheck",
       label: "再 check 一次",
-      kind: "ghost",
+      tone: "success",
       disabled: busy,
     });
   }

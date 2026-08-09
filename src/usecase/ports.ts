@@ -24,8 +24,15 @@ export interface ProcessRunner {
   cancel(runId: string): Promise<void>;
 }
 
+// completed = 學生真的在那個視窗裡把事情做完了（而不是關掉、或放著超時）。
+// ⚠️ 這個布林值不能省：少了它，「開過視窗」就會被當成「驗證通過」——那正是
+// wizard-verification-design.md 說的那道間隙，綠燈但沒生效。
+export interface TerminalOutcome {
+  readonly completed: boolean;
+}
+
 export interface TerminalOpener {
-  open(action: string): Promise<void>;
+  open(action: string): Promise<TerminalOutcome>;
 }
 
 export interface Clock {

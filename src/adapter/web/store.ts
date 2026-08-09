@@ -1,6 +1,6 @@
 import type { ProgressState } from "../../domain/progress.ts";
 import { api, type ServerEvent, type StateBody, type WireProgress } from "./api.ts";
-import type { AppState } from "./viewmodel/card-model.ts";
+import type { AppState, TerminalEntry } from "./viewmodel/card-model.ts";
 
 // 唯一可變狀態。畫面完全由它推導——沒有任何「記得按順序呼叫重畫」的規則，
 // 那類時序 bug 在這個結構下寫不出來（前一代最大的一類）。
@@ -18,7 +18,7 @@ export function createStore(): Store {
     card: { id: "", sectionId: "", label: "載入中…", checkIds: [], capabilities: [] },
     labels: {},
     progress: emptyProgress(),
-    terminalLines: [],
+    terminal: [],
     runningAction: null,
   };
   const listeners = new Set<() => void>();
@@ -29,15 +29,12 @@ export function createStore(): Store {
   };
 
   const applyBody = (body: StateBody): void => {
-    set({
-      card: body.card,
-      labels: body.labels,
-      progress: hydrate(body.progress),
-    });
+    set({ card: body.card, labels: body.labels, progress: hydrate(body.progress) });
   };
 
-  const line = (text: string): void => {
-    set({ terminalLines: [...state.terminalLines, text] });
+  // store 只記「發生了什麼」，不記顏色——顏色是呈現決定，留給 ViewModel。
+  const say = (text: string, kind: TerminalEntry["kind"]): void => {
+    set({ terminal: [...state.terminal, { text, kind }] });
   };
 
   api.stream((event: ServerEvent) => {
@@ -47,11 +44,12 @@ export function createStore(): Store {
     }
 
     if (event.type === "run-line") {
-      line(event.event.text === "" ? "（結束）" : event.event.text);
+      if (event.event.kind === "exit") return;
+      say(event.event.text, event.event.kind === "error" ? "error" : "output");
       return;
     }
 
-    line(event.success ? "✓ 完成" : "✗ 沒有成功");
+    say(event.success ? "完成" : "沒有成功", event.success ? "done-ok" : "done-fail");
     set({ runningAction: null });
   });
 
@@ -69,13 +67,13 @@ export function createStore(): Store {
 
     async runAction(action) {
       if (action === "recheck") {
-        line("重新檢查環境狀態…");
+        say("重新檢查環境狀態…", "note");
         applyBody(await api.recheck());
-        line("檢查完成，狀態已更新。");
+        say("檢查完成，狀態已更新。", "note");
         return;
       }
 
-      set({ runningAction: action, terminalLines: [] });
+      set({ runningAction: action, terminal: [] });
 
       if (action === "verify-claude") {
         await api.verify();

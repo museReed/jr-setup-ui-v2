@@ -1,8 +1,11 @@
 import { useEffect, useState } from "preact/hooks";
 
-import { cardModel, statusText } from "../viewmodel/card-model.ts";
+import { cardModel } from "../viewmodel/card-model.ts";
 import type { Store } from "../store.ts";
+import { Button, Card, CheckItem, Checklist, Logo, Terminal } from "./ds/index.ts";
 
+// View 只做兩件事：把 ViewModel 的欄位貼到設計系統元件上，以及把使用者的動作
+// 交回 store。任何「該顯示什麼」的判斷都不在這裡——那是 ViewModel 的事。
 export function App({ store }: { store: Store }) {
   const [, bump] = useState(0);
 
@@ -16,72 +19,61 @@ export function App({ store }: { store: Store }) {
   const model = cardModel(state);
 
   return (
-    <main>
-      <section class="card" data-display={model.display}>
-        <header>
-          <h1>{model.title}</h1>
-          <span class={`badge badge--${model.display}`}>{model.badge}</span>
-        </header>
-
-        <ul class="checklist">
-          {model.checklist.map((row) => (
-            <li key={row.id} data-status={row.status}>
-              <span class="tick">{row.checked ? "✓" : "○"}</span>
-              <span class="label">{row.label}</span>
-              <span class="status">{statusText(row.status)}</span>
-            </li>
+    <main class="wizard-layout">
+      <Card
+        title={model.title}
+        badge={model.badge}
+        logo={<Logo id={model.logoId} />}
+        footer={
+          <>
+            <span class="advance-hint">{model.advanceHint}</span>
+            <Button disabled={!model.canAdvance}>下一張</Button>
+            {/* 逆口不慶祝也不算完成——慶祝一件沒做成的事會讓學生以為自己過了。 */}
+            {model.canSkip ? (
+              <Button tone="success" onClick={() => void store.skip()}>
+                先跳過這張
+              </Button>
+            ) : null}
+          </>
+        }
+      >
+        <Checklist
+          title={model.checklist.title}
+          done={model.checklist.done}
+          total={model.checklist.total}
+        >
+          {model.checklist.rows.map((row) => (
+            <CheckItem
+              key={row.id}
+              checked={row.checked}
+              readOnly={row.readOnly}
+              hint={row.hint}
+              onChange={(checked) => void store.toggleEye(row.id, checked)}
+            >
+              {row.label}
+            </CheckItem>
           ))}
-          {model.eyeChecks.map((row) => (
-            <li key={row.id} class="eye">
-              <label>
-                <input
-                  type="checkbox"
-                  checked={row.checked}
-                  onChange={(event) =>
-                    void store.toggleEye(row.id, event.currentTarget.checked)
-                  }
-                />
-                <span>{row.prompt}</span>
-              </label>
-            </li>
-          ))}
-        </ul>
+        </Checklist>
 
-        <div class="buttons">
+        <div class="card-actions">
           {model.buttons.map((button) => (
-            <button
+            <Button
               key={button.action}
-              class={button.kind}
+              tone={button.tone}
               disabled={button.disabled}
               onClick={() => void store.runAction(button.action)}
             >
               {button.label}
-            </button>
+            </Button>
           ))}
         </div>
+      </Card>
 
-        <footer>
-          <span class="hint">{model.advanceHint}</span>
-          <button class="next" disabled={!model.canAdvance}>
-            下一張
-          </button>
-          {/* 逆口不慶祝也不算完成——慶祝一件沒做成的事會讓學生以為自己過了。 */}
-          {model.canSkip ? (
-            <button class="skip" onClick={() => void store.skip()}>
-              先跳過這張
-            </button>
-          ) : null}
-        </footer>
-      </section>
-
-      <section class="terminal">
-        <div class="terminal-title">現在正在做什麼</div>
-        <pre>
-          {state.terminalLines.length === 0
-            ? "按上面的按鈕，這裡會即時顯示進度。"
-            : state.terminalLines.join("\n")}
-        </pre>
-      </section>
+      <Terminal
+        title="現在正在做什麼"
+        lines={model.terminalLines}
+        emptyHint="按上面的按鈕，這裡會即時顯示進度。"
+      />
     </main>
   );
 }

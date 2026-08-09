@@ -26,17 +26,19 @@ export function createTerminalOpener(fake: FakeEnv | null): TerminalOpener {
       const { cmd, args } = openCommand(launcher);
       spawn(cmd, args, { detached: true, stdio: "ignore" }).unref();
 
-      const finished = await waitForMarker(marker);
+      const completed = await waitForMarker(marker);
 
-      // 假環境下沒有真的 claude 可跑，但畫面要能走完整條路：視窗確實開了、學生
-      // 確實看完關掉了，就把那兩格推到 ok，讓重新探測拿得到新狀態。
-      if (finished && fake !== null) {
+      // 假環境下沒有真的 claude 可跑，但畫面要能走完整條路：學生確實把視窗走完了，
+      // 就把那兩格推到 ok，讓重新探測拿得到新狀態。
+      if (completed && fake !== null) {
         fake.set("claude", "ok");
         fake.set("claude-auth", "ok");
       }
 
       rmSync(launcher, { force: true });
       rmSync(marker, { force: true });
+
+      return { completed };
     },
   };
 }

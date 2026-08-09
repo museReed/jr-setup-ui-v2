@@ -10,15 +10,13 @@ import { cardModel, type AppState } from "./card-model.ts";
 // 前一代這些判斷住在 2525 行的接線層裡，只能靠 regex 掃原始碼守。
 
 test("兩格都裝好但沒驗過時，清單顯示中間態、下一張不放行", () => {
-  const model = cardModel(
-    appState({ claude: "ok", "claude-auth": "ok" }, {}),
-  );
+  const model = cardModel(appState({ claude: "ok", "claude-auth": "ok" }, {}));
 
   assert.deepEqual(
-    model.checklist.map((row) => row.status),
-    ["unverified", "unverified"],
+    model.checklist.rows.filter((row) => row.readOnly).map((row) => row.hint),
+    ["裝好了，還沒驗過真的生效", "裝好了，還沒驗過真的生效"],
   );
-  assert.equal(model.badge, "還沒開始");
+  assert.equal(model.badge.text, "還沒開始");
   assert.equal(model.canAdvance, false);
 });
 
@@ -34,7 +32,9 @@ test("驗過又勾了眼睛才算完成", () => {
     ),
   );
 
-  assert.equal(model.badge, "已完成");
+  assert.equal(model.badge.text, "已完成");
+  assert.equal(model.badge.tone, "ok");
+  assert.equal(model.checklist.done, model.checklist.total);
   assert.equal(model.canAdvance, true);
   assert.equal(model.canSkip, false);
 });
@@ -47,7 +47,8 @@ test("驗證失敗時鎖住下一張，但給一顆不慶祝的逆口", () => {
     ),
   );
 
-  assert.equal(model.badge, "驗證沒過");
+  assert.equal(model.badge.text, "驗證沒過");
+  assert.equal(model.badge.tone, "bad");
   assert.equal(model.canAdvance, false);
   assert.equal(model.canSkip, true);
 });
@@ -71,6 +72,33 @@ test("沒驗過叫「開終端驗證」，驗過才叫「重跑驗證」", () =>
   assert.equal(after.buttons[2]?.label, "重跑驗證");
 });
 
+// 程式判定的格不能讓學生自己勾——能自動判定的就自動判定，勾選欄位越少，學生越
+// 不會一排全勾。
+test("程式判定的格唯讀，只有眼睛那格可以勾", () => {
+  const model = cardModel(appState({ claude: "ok" }, {}));
+
+  assert.deepEqual(
+    model.checklist.rows.map((row) => row.readOnly),
+    [true, true, false],
+  );
+});
+
+test("終端的語意由 store 給，顏色由 ViewModel 決定", () => {
+  const model = cardModel({
+    ...appState({ claude: "ok" }, {}),
+    terminal: [
+      { text: "跑起來了", kind: "output" },
+      { text: "找不到指令", kind: "error" },
+      { text: "完成", kind: "done-ok" },
+    ],
+  });
+
+  assert.deepEqual(
+    model.terminalLines.map((line) => line.tone),
+    ["plain", "err", "ok"],
+  );
+});
+
 function appState(
   statuses: Record<CheckId, CheckStatus>,
   sets: {
@@ -92,7 +120,7 @@ function appState(
     card: claudeCodeCard,
     labels: CLAUDE_CHECK_LABELS,
     progress,
-    terminalLines: [],
+    terminal: [],
     runningAction: null,
   };
 }
