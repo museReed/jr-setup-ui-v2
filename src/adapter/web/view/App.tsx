@@ -6,7 +6,15 @@ import { K } from "../../../domain/copy-keys.ts";
 import type { ButtonModel } from "../viewmodel/card-model.ts";
 import { cardModel } from "../viewmodel/card-model.ts";
 import type { Store } from "../store.ts";
-import { Button, Card, CheckItem, Checklist, Logo, Terminal } from "./ds/index.ts";
+import {
+  Button,
+  Card,
+  CheckItem,
+  Checklist,
+  LocaleSwitch,
+  Logo,
+  Terminal,
+} from "./ds/index.ts";
 import { Walkthrough, type WalkthroughDoc } from "./Walkthrough.tsx";
 
 // View 只做兩件事：把 ViewModel 的欄位貼到設計系統元件上，以及把使用者的動作
@@ -24,6 +32,7 @@ export function App({ store }: { store: Store }) {
 
   const state = store.get();
   const model = cardModel(state);
+  const t = (key: Parameters<typeof copy>[1]): string => copy(state.locale, key);
 
   const action = (button: ButtonModel) => (
     <Button
@@ -38,6 +47,10 @@ export function App({ store }: { store: Store }) {
 
   return (
     <main class="wizard-layout">
+      <div class="wizard-toolbar">
+        <LocaleSwitch locale={state.locale} onSelect={(next) => store.setLocale(next)} />
+      </div>
+
       <Card
         title={model.title}
         badge={model.badge}
@@ -45,11 +58,11 @@ export function App({ store }: { store: Store }) {
         footer={
           <>
             <span class="advance-hint">{model.advanceHint}</span>
-            <Button disabled={!model.canAdvance}>{copy(K.card.next)}</Button>
+            <Button disabled={!model.canAdvance}>{t(K.card.next)}</Button>
             {/* 逆口不慶祝也不算完成——慶祝一件沒做成的事會讓學生以為自己過了。 */}
             {model.canSkip ? (
               <Button tone="success" onClick={() => void store.skip()}>
-                {copy(K.card.skip)}
+                {t(K.card.skip)}
               </Button>
             ) : null}
           </>
@@ -72,9 +85,9 @@ export function App({ store }: { store: Store }) {
               onHelp={
                 row.walkthroughId === undefined
                   ? undefined
-                  : () => void openWalkthrough(row.walkthroughId!, setWalkthrough)
+                  : () => void openWalkthrough(row.walkthroughId!, state.locale, setWalkthrough)
               }
-              helpLabel={copy(K.card.help)}
+              helpLabel={t(K.card.help)}
               onChange={(checked) => void store.toggleEye(row.id, checked)}
             />
           ))}
@@ -84,13 +97,17 @@ export function App({ store }: { store: Store }) {
       </Card>
 
       <Terminal
-        title={copy(K.terminal.title)}
+        title={t(K.terminal.title)}
         lines={model.terminalLines}
-        emptyHint={copy(K.terminal.empty)}
+        emptyHint={t(K.terminal.empty)}
       />
 
       {walkthrough === null ? null : (
-        <Walkthrough doc={walkthrough} onClose={() => setWalkthrough(null)} />
+        <Walkthrough
+          doc={walkthrough}
+          locale={state.locale}
+          onClose={() => setWalkthrough(null)}
+        />
       )}
     </main>
   );
@@ -98,7 +115,8 @@ export function App({ store }: { store: Store }) {
 
 async function openWalkthrough(
   id: string,
+  locale: string,
   show: (doc: WalkthroughDoc) => void,
 ): Promise<void> {
-  show((await api.walkthrough(id)) as WalkthroughDoc);
+  show((await api.walkthrough(locale, id)) as WalkthroughDoc);
 }

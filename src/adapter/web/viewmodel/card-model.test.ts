@@ -129,6 +129,7 @@ function appState(
 
   return {
     card: claudeCodeCard,
+    locale: "zh-TW",
     progress,
     terminal: [],
     runningAction: null,

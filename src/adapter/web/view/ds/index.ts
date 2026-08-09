@@ -12,6 +12,7 @@ export {
   type ChecklistProps,
   type VerifiedBy,
 } from "./Checklist.tsx";
+export { LocaleSwitch } from "./LocaleSwitch.tsx";
 export { Logo, type LogoProps } from "./Logo.tsx";
 export {
   Terminal,

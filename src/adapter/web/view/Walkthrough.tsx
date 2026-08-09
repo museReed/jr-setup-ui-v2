@@ -1,6 +1,6 @@
 import { useState } from "preact/hooks";
 
-import { copy } from "../../../copy/index.ts";
+import { copy, type Locale } from "../../../copy/index.ts";
 import { K, type MessageKey } from "../../../domain/copy-keys.ts";
 import { renderMock, type MockVisual } from "./mocks.ts";
 
@@ -13,14 +13,15 @@ export interface WalkthroughKid {
   id: string;
   kind: "see" | "warn" | "miss";
   title: string;
-  detail?: string;
+  // 一句一行。內容檔常常是陣列——當成單一字串渲染的話兩句會黏在一起。
+  detail?: string | string[];
   visual?: MockVisual | null;
 }
 
 export interface WalkthroughStep {
   id: string;
   title: string;
-  detail?: string;
+  detail?: string | string[];
   visual?: MockVisual | null;
   kids?: WalkthroughKid[];
 }
@@ -40,34 +41,37 @@ const KID_KEY: Readonly<Record<WalkthroughKid["kind"], MessageKey>> = {
 
 export function Walkthrough({
   doc,
+  locale,
   onClose,
 }: {
   doc: WalkthroughDoc;
+  locale: Locale;
   onClose: () => void;
 }) {
+  const t = (key: MessageKey): string => copy(locale, key);
   return (
     <div class="wt-overlay" onClick={onClose}>
       <section
         class="wt-panel"
         role="dialog"
         aria-modal="true"
-        aria-label={copy(K.walkthrough.title)}
+        aria-label={t(K.walkthrough.title)}
         onClick={(event) => event.stopPropagation()}
       >
         <header class="wt-head">
-          <strong>{copy(K.walkthrough.title)}</strong>
+          <strong>{t(K.walkthrough.title)}</strong>
           <button
             type="button"
             class="wt-close"
             onClick={onClose}
-            aria-label={copy(K.walkthrough.close)}
+            aria-label={t(K.walkthrough.close)}
           >
             ×
           </button>
         </header>
         <ol class="wt-steps">
           {doc.steps.map((step, index) => (
-            <Step key={step.id} step={step} index={index + 1} />
+            <Step key={step.id} step={step} index={index + 1} locale={locale} />
           ))}
         </ol>
       </section>
@@ -75,7 +79,15 @@ export function Walkthrough({
   );
 }
 
-function Step({ step, index }: { step: WalkthroughStep; index: number }) {
+function Step({
+  step,
+  index,
+  locale,
+}: {
+  step: WalkthroughStep;
+  index: number;
+  locale: Locale;
+}) {
   const kids = step.kids ?? [];
 
   return (
@@ -84,34 +96,50 @@ function Step({ step, index }: { step: WalkthroughStep; index: number }) {
         <span class="wt-num">{index}</span>
         <div>
           <div class="wt-title">{step.title}</div>
-          {step.detail === undefined ? null : <p class="wt-detail">{step.detail}</p>}
+          <Detail detail={step.detail} />
         </div>
       </div>
       <Visual visual={step.visual} />
       {kids.map((kid) => (
-        <Kid key={kid.id} kid={kid} />
+        <Kid key={kid.id} kid={kid} locale={locale} />
       ))}
     </li>
   );
 }
 
-function Kid({ kid }: { kid: WalkthroughKid }) {
+function Kid({ kid, locale }: { kid: WalkthroughKid; locale: Locale }) {
   const [open, setOpen] = useState(false);
 
   return (
     <div class={`wt-kid wt-kid--${kid.kind}`}>
       <button type="button" class="wt-kid-head" onClick={() => setOpen(!open)}>
-        <span class="wt-kid-tag">{copy(KID_KEY[kid.kind])}</span>
+        <span class="wt-kid-tag">{copy(locale, KID_KEY[kid.kind])}</span>
         <span>{kid.title}</span>
         <span class="wt-kid-caret">{open ? "−" : "+"}</span>
       </button>
       {open ? (
         <div class="wt-kid-body">
-          {kid.detail === undefined ? null : <p class="wt-detail">{kid.detail}</p>}
+          <Detail detail={kid.detail} />
           <Visual visual={kid.visual} />
         </div>
       ) : null}
     </div>
+  );
+}
+
+function Detail({ detail }: { detail: string | string[] | undefined }) {
+  if (detail === undefined) {
+    return null;
+  }
+
+  return (
+    <>
+      {(Array.isArray(detail) ? detail : [detail]).map((line) => (
+        <p key={line} class="wt-detail">
+          {line}
+        </p>
+      ))}
+    </>
   );
 }
 

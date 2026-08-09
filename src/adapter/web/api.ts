@@ -56,8 +56,9 @@ export const api = {
   verify: (checkId: string) => post("/api/verify", { checkId }),
 
   // 按下去才抓——開頁就把十幾份教學全載進來，學生九成看不到。
-  async walkthrough(id: string): Promise<unknown> {
-    const response = await fetch(`/api/walkthrough/${id}`);
+  // 教學內容分語言存，所以網址要帶語言：翻譯過的步驟跟 UI 是同一件事。
+  async walkthrough(locale: string, id: string): Promise<unknown> {
+    const response = await fetch(`/api/walkthrough/${locale}/${id}`);
 
     if (!response.ok) {
       throw new Error(`找不到教學 ${id}`);

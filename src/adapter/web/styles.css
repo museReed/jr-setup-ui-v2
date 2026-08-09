@@ -19,6 +19,40 @@ body {
   margin: 0 auto;
 }
 
+/* 工具列橫跨兩欄、靠右——語言切換要在右上角，那是看不懂現在這個語言的人會找的
+   地方。 */
+.wizard-toolbar {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  margin-top: calc(var(--space-4) * -1);
+}
+
+.locale-switch {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--r-pill);
+  background: var(--color-bg-elevated);
+}
+
+.locale-option {
+  padding: 3px 12px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-family: var(--font-sans);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+
+.locale-option.is-current {
+  background: var(--color-accent);
+  color: var(--neutral-1);
+}
+
 @media (max-width: 900px) {
   .wizard-layout {
     grid-template-columns: minmax(0, 1fr);

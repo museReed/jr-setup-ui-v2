@@ -69,7 +69,8 @@ async function handle(
   }
 
   if (request.method === "GET" && url.pathname.startsWith("/api/walkthrough/")) {
-    await getWalkthrough(ctx, url.pathname.slice("/api/walkthrough/".length), response);
+    const [locale, id] = url.pathname.slice("/api/walkthrough/".length).split("/");
+    await getWalkthrough(ctx, locale ?? "", id ?? "", response);
     return;
   }
 

@@ -1,3 +1,4 @@
+import { isLocale, type Locale } from "../../copy/index.ts";
 import { K } from "../../domain/copy-keys.ts";
 import type { ProgressState } from "../../domain/progress.ts";
 import { api, type ServerEvent, type StateBody, type WireProgress } from "./api.ts";
@@ -12,6 +13,16 @@ export interface Store {
   runAction(action: string, checkId?: string): Promise<void>;
   toggleEye(id: string, checked: boolean): Promise<void>;
   skip(): Promise<void>;
+  setLocale(locale: Locale): void;
+}
+
+const LOCALE_STORAGE_KEY = "jr.locale";
+
+// 記住學生選的語言。不記的話每次重整都跳回繁體——嚮導會被重整很多次（裝完東西、
+// 開新終端回來），每次都要重選等於這顆按鈕沒用。
+function loadLocale(): Locale {
+  const saved = localStorage.getItem(LOCALE_STORAGE_KEY);
+  return isLocale(saved) ? saved : "zh-TW";
 }
 
 export function createStore(): Store {
@@ -23,6 +34,7 @@ export function createStore(): Store {
       checks: [],
       capabilities: [],
     },
+    locale: loadLocale(),
     progress: emptyProgress(),
     terminal: [],
     runningAction: null,
@@ -115,6 +127,13 @@ export function createStore(): Store {
 
     async skip() {
       applyBody(await api.skip());
+    },
+
+    // 切語言就只是換一次 state。畫面照原本那條路重新推導，終端裡已經印出來的
+    // 那幾行也會跟著翻——因為 store 存的是代號不是字。
+    setLocale(locale) {
+      localStorage.setItem(LOCALE_STORAGE_KEY, locale);
+      set({ locale });
     },
   };
 }
