@@ -54,9 +54,14 @@ export const guardrailsCard: Card = {
       capabilities: [
         { kind: "install", action: "install-hook", startKey: K.run.startInstallHook },
         // 行為驗證：餵一條串接指令，看它擋不擋。
+        //
+        // via: "auto" 不是 terminal——這一題程式自己問得到答案（跑註冊的那條指令、
+        // 讀 exit code），不需要學生去看。能自動判定的就自動判定，勾選欄位越少，
+        // 學生越不會一排全勾。
+        //
         // ⚠️ 跑的必須是 settings.json 裡**實際註冊的那條指令**，不是我們自己拼
         // 一次路徑去叫腳本——腳本本身幾乎永遠是好的，壞掉的是它被怎麼叫。
-        { kind: "verify", via: "terminal", action: "verify-hook" },
+        { kind: "verify", via: "auto", action: "verify-hook" },
       ],
     },
     {
