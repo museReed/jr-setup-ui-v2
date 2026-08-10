@@ -1,0 +1,490 @@
+/* 只放兩種東西：版面（design system 不管排版），以及 DS 沒有涵蓋的少數幾個件。
+   視覺身分（顏色、字級、圓角、陰影）一律吃 vendor/design-system.css 的變數，
+   不要在這裡另外調——那等於偷偷分岔出第二套設計系統。 */
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+}
+
+.wizard-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+  padding: var(--space-6);
+  max-width: 1160px;
+  margin: 0 auto;
+}
+
+/* 工具列橫跨兩欄、靠右——語言切換要在右上角，那是看不懂現在這個語言的人會找的
+   地方。 */
+.wizard-toolbar {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  margin-top: calc(var(--space-4) * -1);
+}
+
+.locale-switch {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--r-pill);
+  background: var(--color-bg-elevated);
+}
+
+.locale-option {
+  padding: 3px 12px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-family: var(--font-sans);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+
+.locale-option.is-current {
+  background: var(--color-accent);
+  color: var(--neutral-1);
+}
+
+@media (max-width: 900px) {
+  .wizard-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* 卡片骨架 ------------------------------------------------------------- */
+
+.task-card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.task-card-head h1 {
+  flex: 1;
+  margin: 0;
+  font-size: var(--fs-lg);
+  color: var(--color-text-strong);
+}
+
+.logo {
+  display: block;
+  flex: 0 0 auto;
+}
+
+/* 徽章：DS 沒有對應元件，前一代那顆也是自己刻的。刻在這裡而不是假裝它是 DS 的一
+   部分——之後 DS 真的長出徽章時，要換的地方只有這一段。 */
+.card-badge {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  padding: 3px 11px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  background: var(--color-bg-inset);
+  white-space: nowrap;
+}
+
+.card-badge--ok {
+  color: var(--color-success-text);
+  background: var(--color-success-bg);
+  border-color: transparent;
+}
+
+.card-badge--warn {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+  background: transparent;
+}
+
+.card-badge--bad {
+  color: var(--red-6);
+  background: var(--red-1);
+  border-color: transparent;
+}
+
+/* 顏色語彙：青＝系統自己驗、橘＝要你自己看 ------------------------------
+   這是導覽裡講的判準，顏色要一直成立才有用。
+
+   ⚠️ 兩處都是「重新指向 token 的值」，不是覆寫 DS 的規則——契約檔禁止覆寫既有
+   ds-* selector，這樣繞開它。 */
+
+/* 系統驗的那幾格一律 disabled（學生點不動），而 DS 最尾端那兩條 `input:disabled`
+   規則把方框與文字刷成 --color-text-faint，把青色蓋掉了。手動項沒有 disabled，
+   它的橘從一開始就在——兩組行為不對稱，未通過的系統項會看起來像壞掉的灰格子。
+   在這個 scope 內把 --color-text-faint 指向青色，那兩條規則照跑，只是刷出來的
+   顏色變了。 */
+.ds-check.is-system {
+  --color-text-faint: var(--color-success);
+}
+
+.ds-check.is-manual {
+  --gl-ink: var(--color-accent);
+}
+
+/* orange-3 比 accent（orange-4）淡一階，暗底上讀得清楚又不會跟標題搶。 */
+.ds-check.is-manual .check-detail {
+  color: var(--orange-3);
+}
+
+/* 每一格自己的按鈕排在該格右側。
+   ⚠️ 分隔線要搬到 .check-row 上：留在 .ds-check 身上的話，線只畫到文字那半的寬度，
+   右邊按鈕那一塊會缺一角。 */
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  border-top: 1px solid var(--gl-line);
+}
+
+.check-row-content {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.check-row-content > .ds-check {
+  border-top: 0;
+}
+
+.check-proof-input {
+  box-sizing: border-box;
+  width: auto;
+  margin: 0 var(--space-4) var(--space-3) var(--space-6);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--r-sm);
+  background: var(--color-bg-inset);
+  color: var(--color-text-strong);
+  font-family: var(--font-mono);
+}
+
+.check-proof-input:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.check-step-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--gl-line);
+  background: var(--color-bg-inset);
+}
+
+.check-step-head strong {
+  flex: 1;
+  color: var(--color-text-strong);
+  font-size: var(--fs-sm);
+}
+
+.check-step-head .ds-btn-fill {
+  padding: 4px var(--space-3);
+  font-size: var(--fs-sm);
+}
+
+.check-row-actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4) var(--space-2) 0;
+}
+
+/* 清單裡的按鈕比卡片底下那顆小一號：它們是「這一格的動作」，不該搶走整張卡的視線。 */
+.check-row-actions .ds-btn-fill {
+  padding: 4px var(--space-3);
+  font-size: var(--fs-sm);
+}
+
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.task-card-foot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border-soft);
+}
+
+.card-position {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--color-text-faint);
+}
+
+.advance-hint {
+  flex: 1;
+  font-size: var(--fs-sm);
+  color: var(--color-text-muted);
+}
+
+/* 「怎麼做」那顆與它的彈窗 ---------------------------------------------- */
+
+.check-help {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid var(--gl-ink, var(--color-border));
+  background: transparent;
+  color: var(--gl-ink, var(--color-text-muted));
+  font-family: var(--font-sans);
+  font-size: var(--fs-sm);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.wt-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: var(--space-5);
+  background: rgba(24, 22, 20, 0.55);
+}
+
+.wt-panel {
+  width: min(680px, 100%);
+  max-height: 84vh;
+  overflow-y: auto;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+.wt-head {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  background: var(--color-bg-elevated);
+  border-bottom: 1px solid var(--color-border-soft);
+}
+
+.wt-head strong {
+  flex: 1;
+  color: var(--color-text-strong);
+}
+
+.wt-close {
+  border: 0;
+  background: transparent;
+  font-size: var(--fs-lg);
+  line-height: 1;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.wt-steps {
+  list-style: none;
+  margin: 0;
+  padding: var(--space-4) var(--space-5) var(--space-5);
+  display: grid;
+  gap: var(--space-5);
+}
+
+.wt-step-head {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+.wt-num {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: var(--neutral-1);
+  font-size: var(--fs-xs);
+  display: grid;
+  place-items: center;
+}
+
+.wt-title {
+  font-weight: 600;
+  color: var(--color-text-strong);
+}
+
+.wt-detail {
+  margin: 4px 0 0;
+  font-size: var(--fs-sm);
+  color: var(--color-text-muted);
+}
+
+.wt-visual {
+  margin: var(--space-3) 0 0 calc(24px + var(--space-3));
+}
+
+.wt-visual figcaption {
+  margin-top: 4px;
+  font-size: var(--fs-xs);
+  color: var(--color-text-faint);
+}
+
+.wt-kid {
+  margin: var(--space-2) 0 0 calc(24px + var(--space-3));
+  border-left: 2px solid var(--color-border-soft);
+  padding-left: var(--space-3);
+}
+
+.wt-kid--warn {
+  border-left-color: var(--color-accent);
+}
+
+.wt-kid-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: var(--fs-sm);
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.wt-kid-tag {
+  flex: 0 0 auto;
+  font-size: var(--fs-xs);
+  padding: 1px 7px;
+  border-radius: var(--r-pill);
+  background: var(--color-bg-inset);
+  color: var(--color-text-muted);
+}
+
+.wt-kid--warn .wt-kid-tag {
+  background: var(--orange-1);
+  color: var(--orange-6);
+}
+
+.wt-kid-caret {
+  margin-left: auto;
+  color: var(--color-text-faint);
+}
+
+.wt-kid-body {
+  padding: var(--space-2) 0 var(--space-3);
+}
+
+/* 終端 ----------------------------------------------------------------- */
+
+.term-title {
+  margin-left: var(--space-2);
+  color: var(--term-ink-dim);
+  font-size: var(--fs-xs);
+}
+
+.ds-term-body {
+  min-height: 200px;
+  max-height: 46vh;
+  overflow-y: auto;
+}
+
+/* 原始輸出：預設收起來。學生要的是上面那幾句白話，助教要的是這裡面的東西。 */
+.term-raw {
+  position: relative;
+  border-top: 1px solid var(--term-bg-2);
+  padding: var(--space-3) var(--space-4);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+}
+
+.term-raw > summary {
+  cursor: pointer;
+  color: var(--term-ink-dim);
+  list-style: revert;
+}
+
+/* 指令停下來等人打字的那一列。放在白話進度底下、原始輸出上面——它是「現在輪到你」，
+   不是紀錄。 */
+.term-prompt {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-top: 1px solid var(--term-bg-2);
+}
+
+.term-prompt-link {
+  flex: none;
+  padding: 2px 10px;
+  border: 1px solid var(--color-accent);
+  border-radius: var(--r-pill);
+  color: var(--color-accent);
+  font-family: var(--font-sans);
+  font-size: var(--fs-xs);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.term-prompt-input {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 10px;
+  border: 1px solid var(--term-bg-2);
+  border-radius: var(--r-sm);
+  background: var(--term-bg-2);
+  color: var(--term-ink);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+}
+
+.term-prompt-submit {
+  flex: none;
+  padding: 4px 12px;
+  border: 1px solid var(--term-bg-2);
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--term-ink-dim);
+  font-family: var(--font-sans);
+  font-size: var(--fs-xs);
+  cursor: pointer;
+}
+
+.term-raw-copy {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-4);
+  padding: 2px 10px;
+  border: 1px solid var(--term-bg-2);
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--term-ink-dim);
+  font-family: var(--font-sans);
+  font-size: var(--fs-xs);
+  cursor: pointer;
+}
+
+.term-raw > pre {
+  margin: var(--space-3) 0 0;
+  max-height: 30vh;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--term-ink-dim);
+}

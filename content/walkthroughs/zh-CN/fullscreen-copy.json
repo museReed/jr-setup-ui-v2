@@ -1,0 +1,153 @@
+{
+  "id": "fullscreen-copy",
+  "card": "claude",
+  "title": "框选终端里的字就复制得起来",
+  "description": "确认你复制得到它打印出来的东西，后面要粘贴回向导的地方都靠它",
+  "note": "第二步：再开一个，框选代码粘贴回来（按钮：开启并送出测试句）",
+  "steps": [
+    {
+      "id": "click-open-and-send",
+      "title": "按卡片上的「开启并送出测试句」",
+      "detail": [
+        "这一格右边那颗",
+        "它会开一个新窗口，并且自动帮你送出一句话"
+      ],
+      "visual": {
+        "type": "mock",
+        "mock": "wizard",
+        "caption": "按钮在那一步的标题列右边",
+        "place": "step",
+        "row": "第二步：再开一个，框选代码粘贴回来",
+        "row2": "框选终端里的字就复制得起来",
+        "button": "开启并送出测试句"
+      },
+      "kids": [
+        {
+          "id": "new-window-mac",
+          "kind": "see",
+          "only": "mac",
+          "title": "一个新的终端窗口开起来了",
+          "detail": [
+            "它常常不会自己跳到最前面，会被你现在这个窗口挡住，这不是坏掉",
+            "去下面的 Dock 找那个终端图标点一下，图标底下有一个小点就代表它开着",
+            "还是找不到就按 F3，画面会摊开所有开着的窗口"
+          ],
+          "visual": {
+            "type": "mock",
+            "mock": "dock",
+            "caption": "Dock 上的终端图标，底下有小点",
+            "app": ">_"
+          }
+        },
+        {
+          "id": "new-window-win",
+          "kind": "see",
+          "only": "win",
+          "title": "一个新的终端窗口开起来了",
+          "detail": [
+            "它常常不会自己跳到最前面，只会在下面的任务栏上闪，这不是坏掉",
+            "看到任务栏有一格在闪，点它一下就会跳出来"
+          ],
+          "visual": {
+            "type": "mock",
+            "mock": "taskbar",
+            "caption": "任务栏上那一格在闪",
+            "app": "终端"
+          }
+        },
+        {
+          "id": "code-printed",
+          "kind": "see",
+          "title": "画面打印出一行代码",
+          "detail": "一行英文加数字，长得像这样",
+          "visual": {
+            "type": "mock",
+            "mock": "term",
+            "caption": "终端里打印出来的那一行",
+            "lines": [
+              {
+                "tone": "prompt",
+                "text": "› 请原样打印这一行，不要加任何说明："
+              },
+              {
+                "tone": "dim",
+                "text": ""
+              },
+              {
+                "tone": "ok",
+                "text": "fullscreen-copy-ok-7f3a91"
+              }
+            ]
+          }
+        }
+      ],
+      "mock": "term"
+    },
+    {
+      "id": "select-line",
+      "title": "用鼠标框选那一整行",
+      "detail": [
+        "从行首拖到行尾，整行反白起来",
+        "放开鼠标的瞬间就复制好了"
+      ],
+      "visual": {
+        "type": "mock",
+        "mock": "term",
+        "caption": "整行反白的样子，头尾都要框到",
+        "lines": [
+          {
+            "tone": "dim",
+            "text": "› 请原样打印这一行，不要加任何说明："
+          },
+          {
+            "tone": "dim",
+            "text": ""
+          },
+          {
+            "tone": "sel",
+            "text": "fullscreen-copy-ok-7f3a91"
+          }
+        ]
+      },
+      "kids": [
+        {
+          "id": "no-copy-shortcut",
+          "kind": "warn",
+          "title": "这里的 Ctrl+C 不是复制",
+          "detail": [
+            "在这个模式下 Ctrl+C 不是复制，是中断执行",
+            "按下去会把 Claude Code 停掉，要再开一次才能继续",
+            "框选放开鼠标就已经复制好了"
+          ],
+          "visual": null,
+          "only": "win"
+        }
+      ]
+    },
+    {
+      "id": "paste-back",
+      "title": "回到向导，粘贴进卡片上的栏位",
+      "detail": "就是这一格下面那个输入框",
+      "visual": null,
+      "kids": [
+        {
+          "id": "auto-checked",
+          "kind": "see",
+          "title": "粘贴对了这一格自己打勾",
+          "detail": [
+            "对不起来的话它会直接告诉你",
+            "不是你做错，多半是框选时少框到头尾，再框一次整行就好"
+          ],
+          "visual": null
+        }
+      ]
+    },
+    {
+      "id": "close-terminals",
+      "title": "把刚才开的两个终端窗口关掉",
+      "detail": "每验一次都会开一个新的，看完随手关掉，待会回头找比较容易",
+      "visual": null,
+      "kids": []
+    }
+  ]
+}

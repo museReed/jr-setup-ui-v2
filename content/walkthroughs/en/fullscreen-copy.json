@@ -1,0 +1,153 @@
+{
+  "id": "fullscreen-copy",
+  "card": "claude",
+  "title": "Selecting text in the terminal copies it",
+  "description": "Make sure you can copy what it prints — everything you paste back into the wizard later depends on it",
+  "note": "Step two: open another one, select the code, paste it back (button: Open and send a test line)",
+  "steps": [
+    {
+      "id": "click-open-and-send",
+      "title": "Press \"Open and send a test line\" on the card",
+      "detail": [
+        "The button on the right of this row",
+        "It opens a new window and sends one line for you automatically"
+      ],
+      "visual": {
+        "type": "mock",
+        "mock": "wizard",
+        "caption": "The button sits on the right of that step's header row",
+        "place": "step",
+        "row": "Step two: open another one, select the code, paste it back",
+        "row2": "Selecting text in the terminal copies it",
+        "button": "Open and send a test line"
+      },
+      "kids": [
+        {
+          "id": "new-window-mac",
+          "kind": "see",
+          "only": "mac",
+          "title": "A new terminal window opened",
+          "detail": [
+            "It often doesn't come to the front — this window hides it. Nothing is broken",
+            "Look for the terminal icon in the Dock and click it; a dot under the icon means it's running",
+            "Still can't find it? Press F3 to spread out every open window"
+          ],
+          "visual": {
+            "type": "mock",
+            "mock": "dock",
+            "caption": "The terminal icon in the Dock, with a dot under it",
+            "app": ">_"
+          }
+        },
+        {
+          "id": "new-window-win",
+          "kind": "see",
+          "only": "win",
+          "title": "A new terminal window opened",
+          "detail": [
+            "It often doesn't come to the front — it just flashes in the taskbar. Nothing is broken",
+            "Click the flashing item in the taskbar and it pops up"
+          ],
+          "visual": {
+            "type": "mock",
+            "mock": "taskbar",
+            "caption": "That taskbar item is flashing",
+            "app": "Terminal"
+          }
+        },
+        {
+          "id": "code-printed",
+          "kind": "see",
+          "title": "A line of code is printed",
+          "detail": "One line of letters and numbers, like this",
+          "visual": {
+            "type": "mock",
+            "mock": "term",
+            "caption": "That line printed in the terminal",
+            "lines": [
+              {
+                "tone": "prompt",
+                "text": "› Print this line exactly, with no explanation:"
+              },
+              {
+                "tone": "dim",
+                "text": ""
+              },
+              {
+                "tone": "ok",
+                "text": "fullscreen-copy-ok-7f3a91"
+              }
+            ]
+          }
+        }
+      ],
+      "mock": "term"
+    },
+    {
+      "id": "select-line",
+      "title": "Select that whole line with the mouse",
+      "detail": [
+        "Drag from the start of the line to the end so the whole line is highlighted",
+        "It's copied the moment you release the mouse"
+      ],
+      "visual": {
+        "type": "mock",
+        "mock": "term",
+        "caption": "The whole line highlighted — catch both ends",
+        "lines": [
+          {
+            "tone": "dim",
+            "text": "› Print this line exactly, with no explanation:"
+          },
+          {
+            "tone": "dim",
+            "text": ""
+          },
+          {
+            "tone": "sel",
+            "text": "fullscreen-copy-ok-7f3a91"
+          }
+        ]
+      },
+      "kids": [
+        {
+          "id": "no-copy-shortcut",
+          "kind": "warn",
+          "title": "Ctrl+C here is not copy",
+          "detail": [
+            "In this mode Ctrl+C isn't copy — it interrupts what's running",
+            "Pressing it stops Claude Code, and you'd have to start it again",
+            "Selecting and releasing the mouse has already copied it"
+          ],
+          "visual": null,
+          "only": "win"
+        }
+      ]
+    },
+    {
+      "id": "paste-back",
+      "title": "Go back to the wizard and paste it into the field on the card",
+      "detail": "The input box just below this row",
+      "visual": null,
+      "kids": [
+        {
+          "id": "auto-checked",
+          "kind": "see",
+          "title": "If it matches, this row ticks itself",
+          "detail": [
+            "If it doesn't match, it tells you straight away",
+            "You didn't do it wrong — usually the selection missed one end. Select the whole line again"
+          ],
+          "visual": null
+        }
+      ]
+    },
+    {
+      "id": "close-terminals",
+      "title": "Close the two terminal windows you just opened",
+      "detail": "Every verification opens a new one. Close them as you go and they're easier to find later",
+      "visual": null,
+      "kids": []
+    }
+  ]
+}
