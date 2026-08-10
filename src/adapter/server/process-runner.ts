@@ -16,8 +16,8 @@ const FAKE_SCRIPTS: Readonly<
 > = {
   "install-claude": {
     lines: [
-      "npm install -g @anthropic-ai/claude-code",
-      "added 1 package in 3s",
+      "curl -fsSL https://claude.ai/install.sh | bash",
+      "Claude Code installed to ~/.local/bin",
     ],
     then: ["claude", "ok"],
   },

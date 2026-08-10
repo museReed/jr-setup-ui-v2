@@ -1,3 +1,5 @@
+import { resolveInstaller } from "./installers.ts";
+
 // 一個 action 要跑什麼。集中在這裡是為了讓 controller 只認名字、不認指令——
 // 網頁送過來的字串永遠只能命中這張表裡的一筆，命不中就是 400。
 export interface ActionSpec {
@@ -13,14 +15,22 @@ export interface ActionSpec {
 // 所以擋掉自動開啟、改讓他自己點畫面上的連結。
 const NO_AUTO_BROWSER = { BROWSER: "echo" } as const;
 
+// 安裝走各家官方的原生安裝器，不經過 npm（理由見 installers.ts 開頭）。
+// 這台機器沒有對應的安裝器時，這個動作就不存在——按下去才失敗比按不下去難查。
+const claudeInstaller = resolveInstaller("claude", process.platform);
+
 export const ACTIONS: Readonly<Record<string, ActionSpec>> = {
-  "install-claude": {
-    label: "安裝 Claude Code",
-    cmd: "npm",
-    args: ["install", "-g", "@anthropic-ai/claude-code"],
-    acceptsInput: false,
-    env: {},
-  },
+  ...(claudeInstaller === undefined
+    ? {}
+    : {
+        "install-claude": {
+          label: "安裝 Claude Code",
+          cmd: claudeInstaller.cmd,
+          args: claudeInstaller.args,
+          acceptsInput: false,
+          env: claudeInstaller.env,
+        },
+      }),
   "login-claude": {
     label: "登入 Claude Code",
     cmd: "claude",
