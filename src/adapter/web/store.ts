@@ -1,7 +1,7 @@
 import { isLocale, type Locale } from "../../copy/index.ts";
 import { K, type MessageKey } from "../../domain/copy-keys.ts";
 import type { ProgressState } from "../../domain/progress.ts";
-import { api, type ServerEvent, type StateBody, type WireProgress } from "./api.ts";
+import { api, ApiError, type ServerEvent, type StateBody, type WireProgress } from "./api.ts";
 import type { AppState, TerminalEntry } from "./viewmodel/card-model.ts";
 
 // 唯一可變狀態。畫面完全由它推導——沒有任何「記得按順序呼叫重畫」的規則，
@@ -109,31 +109,18 @@ export function createStore(): Store {
       }
     },
 
+    // ⚠️ 每一條路都要接住錯誤。
+    //
+    // 伺服器擋下這次動作（例如「還沒裝完就想驗」）時 fetch 是正常回應、api 那層
+    // 把它變成 throw——沒人接的話畫面一個字都不會變，而且 runningAction 停在按下去
+    // 的那一刻永遠不清，之後每顆按鈕都是灰的。學生看到的是「按了沒反應，然後整張
+    // 卡死掉」，實際上伺服器早就回答他了。
     async runAction(action, checkId, startKey) {
-      if (action === "recheck") {
-        push({ source: "notice", messageKey: K.run.rechecking, kind: "note" });
-        applyBody(await api.recheck());
-        push({ source: "notice", messageKey: K.run.recheckDone, kind: "note" });
-        return;
+      try {
+        await perform(action, checkId, startKey);
+      } catch (error) {
+        reportFailure(error);
       }
-
-      // ⚠️ 不清白話那幾行：跑一輪只換掉原始輸出。連白話一起清的話，剛印的那句
-      // 「正在安裝…」會被自己的執行清掉，翻回這張卡也看不到當時的紀錄。
-      runSeq += 1;
-      set({ runningAction: action });
-
-      if (startKey !== undefined) {
-        push({ source: "notice", messageKey: startKey, kind: "note" });
-      }
-
-      // 驗證要指名是哪一格。ViewModel 已經把 checkId 綁在那顆按鈕上——沒有它就是
-      // 前一代那個「按第二格卻開了第一格的終端」的坑。
-      if (checkId !== undefined) {
-        await api.verify(checkId);
-        return;
-      }
-
-      await api.run(action);
     },
 
     async toggleEye(id, checked) {
@@ -167,6 +154,59 @@ export function createStore(): Store {
       set({ locale });
     },
   };
+
+  async function perform(
+    action: string,
+    checkId?: string,
+    startKey?: MessageKey,
+  ): Promise<void> {
+    if (action === "recheck") {
+      push({ source: "notice", messageKey: K.run.rechecking, kind: "note" });
+      applyBody(await api.recheck());
+      push({ source: "notice", messageKey: K.run.recheckDone, kind: "note" });
+      return;
+    }
+
+    // ⚠️ 不清白話那幾行：跑一輪只換掉原始輸出。連白話一起清的話，剛印的那句
+    // 「正在安裝…」會被自己的執行清掉，翻回這張卡也看不到當時的紀錄。
+    runSeq += 1;
+    set({ runningAction: action });
+
+    if (startKey !== undefined) {
+      push({ source: "notice", messageKey: startKey, kind: "note" });
+    }
+
+    // 驗證要指名是哪一格。ViewModel 已經把 checkId 綁在那顆按鈕上——沒有它就是
+    // 前一代那個「按第二格卻開了第一格的終端」的坑。
+    if (checkId !== undefined) {
+      await api.verify(checkId);
+      return;
+    }
+
+    await api.run(action);
+  }
+
+  // 失敗的收尾只有兩件事：講出來，然後把按鈕還給學生。
+  //
+  // 伺服器講得出代號的（他自己修得掉的狀況）翻成他的語言印在白話那一區；講不出
+  // 代號的是我們的 bug，原文丟進原始輸出，我要的是那句原文不是被美化過的版本。
+  function reportFailure(error: unknown): void {
+    const messageKey = error instanceof ApiError ? error.messageKey : null;
+
+    if (messageKey !== null) {
+      push({ source: "notice", messageKey, kind: "done-fail" });
+    } else {
+      push({
+        source: "output",
+        text: error instanceof Error ? error.message : String(error),
+        kind: "error",
+        run: runSeq,
+      });
+      push({ source: "notice", messageKey: K.run.failed, kind: "done-fail" });
+    }
+
+    set({ runningAction: null });
+  }
 }
 
 function hydrate(wire: WireProgress): ProgressState {

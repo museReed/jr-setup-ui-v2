@@ -75,4 +75,7 @@ export const zhCN: Record<MessageKey, string> = {
   "run.verify-opened": "已开启一个新的终端窗口，照里面的字做完再回来。",
   "run.verify-abandoned":
     "那个终端窗口没有走完（被关掉，或超过三分钟没动作）。这次不算验证通过，可以再按一次。",
+  "run.verify-blocked":
+    "这张卡上还有没装完的东西，先把每一格都装好再验——只装一半去验，验过了也不算数。",
+  "run.verify-undeclared": "这一格没有可以验的东西。",
 };

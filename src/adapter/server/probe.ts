@@ -23,8 +23,12 @@ const CONFIG_CHECKS: Readonly<
 export function createEnvProbe(fake: FakeEnv | null, materialsRoot: string): EnvProbe {
   return {
     async probe(checkId) {
-      if (fake !== null) {
-        return fake.status(checkId);
+      const faked = fake?.status(checkId);
+
+      // 假環境只蓋它被交代過的那幾格，其他的照樣走真的探測——設定檔那兩格是真的
+      // 寫在磁碟上，假環境沒理由替它們回答。
+      if (faked !== undefined) {
+        return faked;
       }
 
       if (Object.hasOwn(CONFIG_CHECKS, checkId)) {

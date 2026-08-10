@@ -26,8 +26,10 @@ export async function startVerify(
 
   // 驗證是**那一格**的事。前一代底下那顆共用按鈕跑的永遠是第一格，合併卡上看起來
   // 像「全部重跑」，實際只重跑了一個。
+  // ⚠️ 拒絕的理由送代號不送字。送字的話這句話只有中文、而且會繞過終端那條路
+  //（畫面上唯一「伺服器在跟你講話」的地方）。
   if (found === null) {
-    sendJson(response, 400, { error: "這一格沒有宣告驗證" });
+    sendJson(response, 400, { errorKey: K.run.verifyUndeclared });
     return;
   }
 
@@ -36,7 +38,7 @@ export async function startVerify(
   // 合併卡：兩份都裝好才輪到驗證。順序反了驗的是「只裝了一半」的狀態，而那種
   // 驗證多半會過——綠燈就長在一個沒做完的東西上。
   if (!canVerifyYet(card, ctx.store.snapshot())) {
-    sendJson(response, 409, { error: "這張卡上還有沒裝完的，先裝完再驗" });
+    sendJson(response, 409, { errorKey: K.run.verifyBlocked });
     return;
   }
 

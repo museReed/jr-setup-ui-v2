@@ -93,6 +93,10 @@ export const K = {
     startInstallAllowlist: "run.start-install-allowlist",
     verifyOpened: "run.verify-opened",
     verifyAbandoned: "run.verify-abandoned",
+    // 伺服器拒絕這次驗證的兩個理由。它們要有代號而不是回一句英數錯誤字串——
+    // 「被擋下來」是學生看得懂也修得掉的狀況，跟壞掉不一樣。
+    verifyBlocked: "run.verify-blocked",
+    verifyUndeclared: "run.verify-undeclared",
   },
 } as const;
 

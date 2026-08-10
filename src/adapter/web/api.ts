@@ -26,6 +26,22 @@ export type ServerEvent =
   | { type: "run-done"; runId: string; success: boolean }
   | { type: "state"; progress: WireProgress };
 
+// 伺服器拒絕的理由，帶著代號一路傳到呼叫端。
+//
+// 有代號的（學生自己修得掉的狀況，例如「還沒裝完」）翻成他的語言講給他聽；沒有
+// 代號的是我們的 bug，照原文丟出來就好——那種訊息本來就是給我看的。
+export class ApiError extends Error {
+  // ⚠️ 寫成一般欄位，不用建構子參數屬性——Node 跑 .ts 是純去型別，那個語法它剖不了
+  // （而 tsc 與 vite 都吃得下，所以只有 npm test 會抓到）。
+  readonly messageKey: MessageKey | null;
+
+  constructor(message: string, messageKey: MessageKey | null) {
+    super(message);
+    this.name = "ApiError";
+    this.messageKey = messageKey;
+  }
+}
+
 async function post(path: string, body?: unknown): Promise<unknown> {
   const response = await fetch(path, {
     method: "POST",
@@ -37,10 +53,15 @@ async function post(path: string, body?: unknown): Promise<unknown> {
   // 正常的空物件，然後在別的地方壞掉。
   if (!response.ok) {
     const detail: unknown = await response.json().catch(() => ({}));
-    throw new Error(
-      typeof detail === "object" && detail !== null && "error" in detail
-        ? String((detail as { error: unknown }).error)
-        : `${path} 回了 ${response.status}`,
+    const field = (name: string): string | null =>
+      typeof detail === "object" && detail !== null && name in detail
+        ? String((detail as Record<string, unknown>)[name])
+        : null;
+    const key = field("errorKey");
+
+    throw new ApiError(
+      key ?? field("error") ?? `${path} 回了 ${response.status}`,
+      key as MessageKey | null,
     );
   }
 

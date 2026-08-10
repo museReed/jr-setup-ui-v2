@@ -5,8 +5,13 @@ import type { CheckId, CheckStatus } from "../../domain/check.ts";
 //
 // ⚠️ 只有 JR_FAKE_ENV 明確設值時才啟用。沒設就是 null，所有路徑走真的探測；
 // 發佈出去的套件裡沒有人會設它。
+// ⚠️ 沒指定的格回 undefined，不是回 "missing"。
+//
+// 回 "missing" 的話假環境會蓋住每一格：設定檔那兩格（hook / allowlist）真的裝好了
+// 也永遠顯示「還沒安裝」，於是驗證永遠被擋——而畫面上看起來就是「裝了沒用」。
+// 假環境只該回答它被交代過的那幾格，其他的照樣去問真的。
 export interface FakeEnv {
-  status(checkId: CheckId): CheckStatus;
+  status(checkId: CheckId): CheckStatus | undefined;
   set(checkId: CheckId, status: CheckStatus): void;
 }
 
@@ -26,7 +31,7 @@ export function createFakeEnv(raw: string | undefined): FakeEnv | null {
 
   return {
     status(checkId) {
-      return statuses.get(checkId) ?? "missing";
+      return statuses.get(checkId);
     },
     set(checkId, status) {
       statuses.set(checkId, status);

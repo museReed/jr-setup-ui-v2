@@ -32,7 +32,7 @@ export const ACTIONS: Readonly<Record<string, ActionSpec>> = {
 
 // 開真終端視窗那條路不共用上面那張表：它跑的不是一條指令，而是一支我們寫出去的
 // 腳本（見 terminal-opener.ts）。這裡只留「這個 action 認不認得」。
-export const TERMINAL_ACTIONS = new Set(["verify-claude"]);
+export const TERMINAL_ACTIONS = new Set(["verify-claude", "verify-allowlist"]);
 
 export function findAction(action: string): ActionSpec | undefined {
   return Object.hasOwn(ACTIONS, action) ? ACTIONS[action] : undefined;

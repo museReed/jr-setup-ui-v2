@@ -76,4 +76,7 @@ export const en: Record<MessageKey, string> = {
     "A new terminal window is open — follow what it says, then come back.",
   "run.verify-abandoned":
     "That terminal window wasn't finished (closed, or idle for over three minutes). This doesn't count as verified — you can press it again.",
+  "run.verify-blocked":
+    "Something on this card isn't installed yet. Install every row first — verifying a half-installed card proves nothing.",
+  "run.verify-undeclared": "There's nothing to verify on this row.",
 };
