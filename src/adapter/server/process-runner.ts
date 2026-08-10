@@ -1,4 +1,5 @@
 import { spawn, type ChildProcess } from "node:child_process";
+import type { Writable } from "node:stream";
 
 import type {
   ProcessRunner,
@@ -39,6 +40,38 @@ const FILE_ACTIONS: Readonly<
   "install-allowlist": installAllowlist,
 };
 
+export async function writeLine(
+  stdin: Writable | null | undefined,
+  text: string,
+): Promise<void> {
+  if (stdin === null || stdin === undefined) {
+    throw new Error("輸入送不出去：找不到子程序的 stdin");
+  }
+
+  if (stdin.destroyed) {
+    throw new Error("輸入送不出去：子程序的 stdin 已毀損");
+  }
+
+  if (stdin.writableEnded) {
+    throw new Error("輸入送不出去：子程序的 stdin 已結束");
+  }
+
+  if (!stdin.writable) {
+    throw new Error("輸入送不出去：子程序的 stdin 不可寫");
+  }
+
+  return new Promise((resolve, reject) => {
+    stdin.write(`${text}\n`, "utf8", (error) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+
+      resolve();
+    });
+  });
+}
+
 export function createProcessRunner(
   fake: FakeEnv | null,
   materialsRoot: string,
@@ -65,11 +98,8 @@ export function createProcessRunner(
 
       // 送不出去要講。前一代這裡靜靜地什麼都不做，學生貼了授權碼按送出、畫面
       // 沒有任何反應，也沒有任何線索說他貼到了哪裡去。
-      if (child?.stdin === undefined || child.stdin === null) {
-        throw new Error(`找不到還在跑的執行 ${runId}，輸入沒有送出去`);
-      }
-
-      child.stdin.write(text);
+      // claude 等的是完整的一行，少了換行就會一直等下去。
+      await writeLine(child?.stdin, text);
     },
 
     async cancel(runId) {
