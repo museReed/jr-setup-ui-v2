@@ -29,6 +29,7 @@ export const zhCN: Record<MessageKey, string> = {
   "action.verify-auto": "验证",
   "action.rerun-verify": "重跑验证",
   "action.recheck": "再 check 一次",
+  "action.cancel": "取消这一轮",
 
   "card.guardrails": "它什么时候该停下来问你",
   "card.checklist-title": "这张卡要完成的事",

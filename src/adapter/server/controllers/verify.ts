@@ -16,6 +16,24 @@ const AUTO_VERIFIERS: Readonly<
   "verify-hook": verifyHookBehavior,
 };
 
+// 還在等的那幾次驗證。
+//
+// 開出去的終端視窗一旦被關掉，這邊沒有任何辦法知道——只能等滿逾時（三到四分鐘），
+// 而那段時間畫面上每顆按鈕都是灰的，學生想重跑也按不動。取消就是給他一條主動說
+// 「我關掉了」的路。
+const PENDING = new Map<string, AbortController>();
+
+export function cancelVerify(checkId: string): boolean {
+  const controller = PENDING.get(checkId);
+
+  if (controller === undefined) {
+    return false;
+  }
+
+  controller.abort();
+  return true;
+}
+
 export async function startVerify(
   ctx: ServerContext,
   request: IncomingMessage,
@@ -105,8 +123,17 @@ async function runTerminalVerify(
 ): Promise<void> {
   say(ctx, checkId, K.run.verifyOpened, false);
 
+  const controller = new AbortController();
+  PENDING.set(checkId, controller);
+
   // 開完視窗就拿不到裡面的輸出了，結果只能靠重新探測——這是設計，不是偷懶。
-  const { completed, checks } = await verifyInTerminal(action, card, ctx.terminal, ctx.probe);
+  const { completed, checks } = await verifyInTerminal(
+    action,
+    card,
+    ctx.terminal,
+    ctx.probe,
+    controller.signal,
+  ).finally(() => PENDING.delete(checkId));
 
   // ⛔ 沒走完就不是驗證通過。探測看的是「檔案在不在」，那本來就是好的——拿它
   // 當驗證結果，就是把「裝好」當成「生效」。

@@ -5,6 +5,7 @@ import { collectAction, startAction } from "../../../usecase/run-action.ts";
 import type { ServerContext } from "../context.ts";
 import { readJson, readString, sendJson } from "../respond.ts";
 import { refreshChecks } from "./shared.ts";
+import { cancelVerify } from "./verify.ts";
 
 // 網頁只送 action 名字。這裡對照每一格宣告的能力——不在能力清單裡的動作一律拒絕，
 // 網頁就沒辦法叫伺服器跑任意指令。
@@ -78,6 +79,11 @@ export async function cancelRun(
     return;
   }
 
-  await ctx.runner.cancel(runId);
+  // 驗證的等待跟跑指令是兩種東西：前者沒有子行程可以殺，只有一個在輪詢的迴圈。
+  // 兩者共用 runId（驗證用的就是那一格的 id），所以同一顆取消鈕兩邊都叫得動。
+  if (!cancelVerify(runId)) {
+    await ctx.runner.cancel(runId);
+  }
+
   sendJson(response, 200, { ok: true });
 }

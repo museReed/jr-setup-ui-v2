@@ -51,6 +51,9 @@ export interface AppState {
   readonly progress: ProgressState;
   readonly terminal: readonly TerminalEntry[];
   readonly runningAction: string | null;
+  // 這一輪的把手。取消要指名取消誰——驗證用的是那一格的 id，跑指令用的是伺服器
+  // 發的 runId，兩者共用同一顆按鈕。
+  readonly runningRunId: string | null;
 }
 
 export interface ButtonModel {
@@ -101,6 +104,9 @@ export interface CardViewModel {
   readonly terminalLines: readonly TerminalLine[];
   // 指令原封不動吐出來的東西。跟上面分開——npm 那幾十行雜訊會把白話進度淹掉。
   readonly rawOutput: string;
+  // 還在跑的時候才給取消。這是學生唯一能主動結束一次等待的路——終端視窗被關掉時
+  // 伺服器不會知道，沒有這顆按鈕他只能盯著一排灰按鈕等逾時。
+  readonly cancel: ButtonModel | null;
   readonly canAdvance: boolean;
   readonly canSkip: boolean;
   readonly advanceHint: string;
@@ -182,6 +188,15 @@ export function cardModel(state: AppState): CardViewModel {
         tone: TERMINAL_TONE[entry.kind],
       })),
     rawOutput: recentRawOutput(state.terminal),
+    cancel:
+      state.runningAction === null
+        ? null
+        : {
+            action: "cancel",
+            label: t(K.action.cancel),
+            tone: "accent",
+            disabled: false,
+          },
     canAdvance: advance,
     canSkip: canSkip(card, progress),
     advanceHint: t(

@@ -33,6 +33,7 @@ export const zhTW: Record<MessageKey, string> = {
   "action.verify-auto": "驗證",
   "action.rerun-verify": "重跑驗證",
   "action.recheck": "再 check 一次",
+  "action.cancel": "取消這一輪",
 
   "card.claude": "Claude Code",
   "card.guardrails": "它什麼時候該停下來問你",

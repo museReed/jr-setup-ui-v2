@@ -11,6 +11,7 @@ export interface Store {
   subscribe(listener: () => void): () => void;
   load(): Promise<void>;
   runAction(action: string, checkId?: string, startKey?: MessageKey): Promise<void>;
+  cancel(): Promise<void>;
   toggleEye(id: string, checked: boolean): Promise<void>;
   skip(): Promise<void>;
   goNext(): Promise<void>;
@@ -39,6 +40,7 @@ export function createStore(): Store {
     progress: emptyProgress(),
     terminal: [],
     runningAction: null,
+    runningRunId: null,
   };
   const listeners = new Set<() => void>();
   // 第幾輪。原始輸出保留最近幾輪要靠它分組（見 viewmodel 的 recentRawOutput）。
@@ -90,7 +92,7 @@ export function createStore(): Store {
       messageKey: event.success ? K.run.done : K.run.failed,
       kind: event.success ? "done-ok" : "done-fail",
     });
-    set({ runningAction: null });
+    set({ runningAction: null, runningRunId: null });
   });
 
   return {
@@ -118,6 +120,22 @@ export function createStore(): Store {
     async runAction(action, checkId, startKey) {
       try {
         await perform(action, checkId, startKey);
+      } catch (error) {
+        reportFailure(error);
+      }
+    },
+
+    // 取消只送一個請求，不自己動狀態——伺服器停下來之後照樣發 run-done，畫面走的
+    // 是跟正常結束一模一樣那條路。自己搶著清的話，兩邊會各清一次而順序不保證。
+    async cancel() {
+      const runId = state.runningRunId;
+
+      if (runId === null) {
+        return;
+      }
+
+      try {
+        await api.cancel(runId);
       } catch (error) {
         reportFailure(error);
       }
@@ -178,12 +196,17 @@ export function createStore(): Store {
 
     // 驗證要指名是哪一格。ViewModel 已經把 checkId 綁在那顆按鈕上——沒有它就是
     // 前一代那個「按第二格卻開了第一格的終端」的坑。
+    //
+    // 驗證的把手就是那一格的 id（伺服器用同一個字當 runId），所以取消鈕在請求還沒
+    // 回來之前就已經指得到人。
     if (checkId !== undefined) {
+      set({ runningRunId: checkId });
       await api.verify(checkId);
       return;
     }
 
-    await api.run(action);
+    const { runId } = await api.run(action);
+    set({ runningRunId: runId });
   }
 
   // 失敗的收尾只有兩件事：講出來，然後把按鈕還給學生。
@@ -205,7 +228,7 @@ export function createStore(): Store {
       push({ source: "notice", messageKey: K.run.failed, kind: "done-fail" });
     }
 
-    set({ runningAction: null });
+    set({ runningAction: null, runningRunId: null });
   }
 }
 

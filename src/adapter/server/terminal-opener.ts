@@ -23,13 +23,19 @@ const ALLOWLIST_TOKEN = "allowlist-ok-9d4b71";
 
 export function createTerminalOpener(fake: FakeEnv | null): TerminalOpener {
   return {
-    async open(action) {
+    async open(action, signal) {
+      // 已經取消了就別開視窗。取消與按下之間只有幾百毫秒，但那幾百毫秒開出去的
+      // 視窗會活下來——學生取消了卻多一個視窗跳出來，比沒取消還糟。
+      if (signal?.aborted === true) {
+        return { completed: false };
+      }
+
       if (action === "verify-claude") {
-        return openClaudeVerify(fake);
+        return openClaudeVerify(fake, signal);
       }
 
       if (action === "verify-allowlist") {
-        return openAllowlistVerify();
+        return openAllowlistVerify(signal);
       }
 
       throw new Error(`不認得的終端動作：${action}`);
@@ -37,7 +43,10 @@ export function createTerminalOpener(fake: FakeEnv | null): TerminalOpener {
   };
 }
 
-async function openClaudeVerify(fake: FakeEnv | null): Promise<{ completed: boolean }> {
+async function openClaudeVerify(
+  fake: FakeEnv | null,
+  signal?: AbortSignal,
+): Promise<{ completed: boolean }> {
   const stamp = `${process.pid}-${counter()}`;
   const marker = path.join(tmpdir(), `jr-verify-${stamp}.done`);
   const launcher = writeLauncher(stamp, marker);
@@ -45,7 +54,7 @@ async function openClaudeVerify(fake: FakeEnv | null): Promise<{ completed: bool
   const { cmd, args } = openCommand(launcher);
   spawn(cmd, args, { detached: true, stdio: "ignore" }).unref();
 
-  const completed = await waitUntil(() => existsSync(marker), MARKER_TIMEOUT_MS);
+  const completed = await waitUntil(() => existsSync(marker), MARKER_TIMEOUT_MS, signal);
 
   // 假環境下沒有真的 claude 可跑，但畫面要能走完整條路：學生確實把視窗走完了，
   // 就把那兩格推到 ok，讓重新探測拿得到新狀態。
@@ -76,7 +85,7 @@ async function openClaudeVerify(fake: FakeEnv | null): Promise<{ completed: bool
 // WebSearch 那條刻意不驗（舊版 Reed 指定）：它在部分地區用不了，驗它等於在那些地區
 // 製造一個永遠紅的燈。會改東西的（mkdir / git commit）與機器上不一定有的（jq / tree）
 // 也不跑——它們失敗的原因跟白名單無關，而學生只會看到一個紅燈。
-async function openAllowlistVerify(): Promise<{ completed: boolean }> {
+async function openAllowlistVerify(signal?: AbortSignal): Promise<{ completed: boolean }> {
   const stamp = `${process.pid}-${counter()}`;
   // 落在 tmpdir 是刻意的：那個目錄一定存在。要模型自己去建目錄的話，Windows 上
   // New-Item 不在白名單裡（那 39 條全是 Bash(...)），第一步就跳提示卡死。
@@ -93,6 +102,7 @@ async function openAllowlistVerify(): Promise<{ completed: boolean }> {
   const completed = await waitUntil(
     () => readIfExists(resultFile).includes(ALLOWLIST_TOKEN),
     ALLOWLIST_TIMEOUT_MS,
+    signal,
   );
 
   rmSync(launcher, { force: true });
@@ -157,6 +167,16 @@ function writeLauncher(stamp: string, marker: string): string {
   return file;
 }
 
+// 開出去的 claude 一律指定 acceptEdits，不吃學生機器上的預設模式。
+//
+// ⚠️ 這不是繞過驗證，而是這一題成立的前提：最後一步要 AI 把 token 寫進副產物檔，
+// 那是一次 Write。預設模式會為它跳提示（而題目叫學生不要按允許），「不要問我」那種
+// 模式更糟——它直接拒絕，於是副產物永遠不會出現、每次都判成沒過。
+//
+// acceptEdits 只自動放行「改檔案」，Bash 與 WebFetch 該不該問仍然由 settings.json
+// 的白名單決定——也就是這一題真正要量的那件事，沒有被這個旗標蓋掉。
+const CLAUDE_ACCEPT_EDITS = "--permission-mode acceptEdits";
+
 // 白名單那題的視窗：把提問交給 claude，人只要看著。
 //
 // ⚠️ 提問裡不要出現單引號——它會被包在 '...' 裡送給 shell，一個單引號就把整句剖開。
@@ -169,7 +189,7 @@ function writeAllowlistLauncher(stamp: string, resultFile: string): string {
     const ps = [
       'Write-Host "===== 驗證常用指令白名單 ====="',
       `Write-Host "${watch}"`,
-      `claude '${prompt}'`,
+      `claude ${CLAUDE_ACCEPT_EDITS} '${prompt}'`,
     ].join("\n");
     // PowerShell 5.1 沒有 BOM 就當系統 ANSI 讀，中文變亂碼——而亂碼字元可能剛好
     // 破壞字串引號，整支腳本連 parse 都過不了。
@@ -183,7 +203,12 @@ function writeAllowlistLauncher(stamp: string, resultFile: string): string {
     'echo ""',
     `echo "${watch}"`,
     'echo ""',
-    `claude '${prompt}'`,
+    // ⚠️ `command` 不能省。-i 會讀學生的 ~/.zshrc，而那裡很可能有一個叫 claude 的
+    // 包裝函式（我們自己的 tab-sync 就會裝一個，Reed 機器上是 myclaude）——包裝
+    // 函式會把我們加的旗標吃掉，實測到的樣子是行程參數裡完全沒有
+    // --permission-mode。-i 得留著（claude 裝在 ~/.local/bin，PATH 靠 .zshrc 補），
+    // 所以只能在這一次呼叫上繞過包裝。
+    `command claude ${CLAUDE_ACCEPT_EDITS} '${prompt}'`,
   ];
   writeFileSync(file, `#!/bin/zsh -i\n${body.join("\n")}\n`);
   chmodSync(file, 0o755);
@@ -223,12 +248,21 @@ function openCommand(launcher: string): { cmd: string; args: string[] } {
   return { cmd: "open", args: [launcher] };
 }
 
-async function waitUntil(done: () => boolean, timeoutMs: number): Promise<boolean> {
+async function waitUntil(
+  done: () => boolean,
+  timeoutMs: number,
+  signal?: AbortSignal,
+): Promise<boolean> {
   const deadline = Date.now() + timeoutMs;
 
   while (Date.now() < deadline) {
     if (done()) {
       return true;
+    }
+
+    // 取消跟逾時的結論一樣（沒走完），差別只在學生等多久才拿回按鈕。
+    if (signal?.aborted === true) {
+      return false;
     }
 
     await new Promise((resolve) => setTimeout(resolve, 400));

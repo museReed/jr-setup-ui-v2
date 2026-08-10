@@ -110,6 +110,22 @@ test("終端：白話進度與原始輸出分開，代號在這一層翻成字",
   assert.equal(model.rawOutput, "added 1 package in 3s\ncommand not found");
 });
 
+// 這兩題守的是「終端視窗被關掉之後學生按不動任何東西」那個坑：跑的時候要給得出
+// 一條主動結束的路，沒在跑的時候不要有那顆按鈕誤導人。
+test("還在跑的時候給得出取消", () => {
+  const model = cardModel({
+    ...appState({ claude: "missing" }, {}),
+    runningAction: "verify-claude",
+    runningRunId: "claude",
+  });
+
+  assert.equal(model.cancel?.label, "取消這一輪");
+});
+
+test("沒在跑就沒有取消鈕", () => {
+  assert.equal(cardModel(appState({ claude: "missing" }, {})).cancel, null);
+});
+
 function appState(
   statuses: Record<CheckId, CheckStatus>,
   sets: {
@@ -135,6 +151,7 @@ function appState(
     progress,
     terminal: [],
     runningAction: null,
+    runningRunId: null,
   };
 }
 

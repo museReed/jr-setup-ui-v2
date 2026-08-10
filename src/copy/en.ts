@@ -29,6 +29,7 @@ export const en: Record<MessageKey, string> = {
   "action.verify-auto": "Verify",
   "action.rerun-verify": "Verify again",
   "action.recheck": "Check again",
+  "action.cancel": "Cancel this run",
 
   "card.guardrails": "When it should stop and ask you",
   "card.checklist-title": "What this card needs",

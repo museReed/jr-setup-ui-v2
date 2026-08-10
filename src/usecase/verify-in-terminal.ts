@@ -15,8 +15,9 @@ export async function verifyInTerminal(
   card: Card,
   terminalOpener: TerminalOpener,
   envProbe: EnvProbe,
+  signal?: AbortSignal,
 ): Promise<VerifyInTerminalResult> {
-  const outcome = await terminalOpener.open(action);
+  const outcome = await terminalOpener.open(action, signal);
   return {
     completed: outcome.completed,
     checks: await checkEnvironment(card, envProbe),

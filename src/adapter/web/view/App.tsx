@@ -110,6 +110,13 @@ export function App({ store }: { store: Store }) {
         title={t(K.terminal.title)}
         lines={model.terminalLines}
         emptyHint={t(K.terminal.empty)}
+        chromeExtra={
+          model.cancel === null ? null : (
+            <Button tone={model.cancel.tone} onClick={() => void store.cancel()}>
+              {model.cancel.label}
+            </Button>
+          )
+        }
         raw={{
           text: model.rawOutput,
           summaryLabel: t(K.terminal.rawSummary),

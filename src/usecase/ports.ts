@@ -32,7 +32,9 @@ export interface TerminalOutcome {
 }
 
 export interface TerminalOpener {
-  open(action: string): Promise<TerminalOutcome>;
+  // signal：學生把那個視窗關掉時，等待要停得下來。沒有它就得等滿逾時（三到四分鐘），
+  // 而那段時間畫面上每顆按鈕都是灰的——想重跑也按不動。
+  open(action: string, signal?: AbortSignal): Promise<TerminalOutcome>;
 }
 
 export interface Clock {
