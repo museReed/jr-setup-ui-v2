@@ -44,6 +44,16 @@ test("宣告了驗證的那格才顯示中間態", () => {
   assert.equal(model.checklist.rows[1]?.hint, "驗過生效");
 });
 
+// 這題守每一格自己的 missing 文案，也守住沒有覆寫的格仍沿用共用文案。
+test("登入未完成說還沒登入，CLI 未完成仍說還沒安裝", () => {
+  const model = cardModel(
+    appState({ claude: "missing", "claude-auth": "missing" }, {}),
+  );
+
+  assert.equal(model.checklist.rows[1]?.hint, "還沒登入");
+  assert.equal(model.checklist.rows[0]?.hint, "還沒安裝");
+});
+
 test("驗過又勾了眼睛才算完成", () => {
   const model = cardModel(
     appState(
@@ -124,6 +134,46 @@ test("還在跑的時候給得出取消", () => {
 
 test("沒在跑就沒有取消鈕", () => {
   assert.equal(cardModel(appState({ claude: "missing" }, {})).cancel, null);
+});
+
+// 這題守輸入區只在目前這一輪真的等待輸入時出現。
+test("這一輪要等輸入時才有輸入區", () => {
+  const waiting = cardModel({
+    ...appState({ claude: "ok" }, {}),
+    runningAcceptsInput: true,
+  });
+  const notWaiting = cardModel({
+    ...appState({ claude: "ok" }, {}),
+    runningAcceptsInput: false,
+  });
+
+  assert.notEqual(waiting.prompt, null);
+  assert.equal(waiting.prompt?.submitLabel, "送出");
+  assert.equal(notWaiting.prompt, null);
+});
+
+// 這題守登入重跑後要用最新一輪的網址，否則貼回來的授權碼會對不上。
+test("授權連結取輸出裡的最後一個網址，不是第一個", () => {
+  const model = cardModel({
+    ...appState({ claude: "ok" }, {}),
+    terminal: [
+      {
+        source: "output",
+        text: "請開啟 https://example.com/previous",
+        kind: "output",
+        run: 1,
+      },
+      {
+        source: "output",
+        text: "請開啟 https://example.com/current",
+        kind: "output",
+        run: 2,
+      },
+    ],
+    runningAcceptsInput: true,
+  });
+
+  assert.equal(model.prompt?.link?.href, "https://example.com/current");
 });
 
 function appState(

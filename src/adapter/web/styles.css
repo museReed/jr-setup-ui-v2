@@ -392,9 +392,9 @@ body {
 .term-prompt-link {
   flex: none;
   padding: 2px 10px;
-  border: 1px solid var(--accent);
+  border: 1px solid var(--color-accent);
   border-radius: var(--r-pill);
-  color: var(--accent);
+  color: var(--color-accent);
   font-family: var(--font-sans);
   font-size: var(--fs-xs);
   text-decoration: none;
