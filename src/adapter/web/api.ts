@@ -73,7 +73,8 @@ export const api = {
     return (await (await fetch("/api/state")).json()) as StateBody;
   },
   recheck: () => post("/api/recheck") as Promise<StateBody>,
-  run: (action: string) => post("/api/run", { action }) as Promise<{ runId: string }>,
+  run: (action: string) =>
+    post("/api/run", { action }) as Promise<{ runId: string; acceptsInput: boolean }>,
   input: (runId: string, text: string) => post("/api/input", { runId, text }),
   cancel: (runId: string) => post("/api/cancel", { runId }),
   verify: (checkId: string) => post("/api/verify", { checkId }),

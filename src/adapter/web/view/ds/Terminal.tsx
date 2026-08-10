@@ -38,16 +38,31 @@ export interface TerminalRaw {
   readonly onCopy: () => void;
 }
 
+// 指令停下來等人打字的那一刻：一個可點的連結加一格輸入框。
+export interface TerminalPrompt {
+  readonly submitLabel: string;
+  readonly link: { readonly href: string; readonly label: string } | null;
+  readonly onSubmit: (text: string) => void;
+}
+
 export interface TerminalProps {
   title: string;
   lines: readonly TerminalLine[];
   emptyHint: string;
   raw?: TerminalRaw;
+  prompt?: TerminalPrompt | null;
   // 頂欄右側的位置。前一代把常駐的小人掛在這裡，之後接回來時不用改結構。
   chromeExtra?: ComponentChildren;
 }
 
-export function Terminal({ title, lines, emptyHint, raw, chromeExtra }: TerminalProps) {
+export function Terminal({
+  title,
+  lines,
+  emptyHint,
+  raw,
+  prompt,
+  chromeExtra,
+}: TerminalProps) {
   return (
     <section class="ds-term ds-term--typing" aria-label="執行狀態">
       <div class="ds-term-chrome">
@@ -69,6 +84,10 @@ export function Terminal({ title, lines, emptyHint, raw, chromeExtra }: Terminal
         )}
       </div>
 
+      {prompt === undefined || prompt === null ? null : (
+        <PromptRow prompt={prompt} />
+      )}
+
       {raw === undefined ? null : (
         <details class="term-raw">
           <summary>{raw.summaryLabel}</summary>
@@ -79,6 +98,41 @@ export function Terminal({ title, lines, emptyHint, raw, chromeExtra }: Terminal
         </details>
       )}
     </section>
+  );
+}
+
+// 輸入框裡打到一半的字是純呈現狀態，不往 store 送。
+//
+// 連結一定要 target="_blank"：在同一個分頁開走的話，嚮導頁就被蓋掉了——而那正是
+// 我們一開始擋掉 claude 自動開瀏覽器的原因，自己再犯一次就沒意義了。
+function PromptRow({ prompt }: { prompt: TerminalPrompt }) {
+  const [text, setText] = useState("");
+
+  const submit = () => {
+    prompt.onSubmit(text);
+    setText("");
+  };
+
+  return (
+    <div class="term-prompt">
+      {prompt.link === null ? null : (
+        <a class="term-prompt-link" href={prompt.link.href} target="_blank" rel="noreferrer">
+          {prompt.link.label}
+        </a>
+      )}
+      <input
+        class="term-prompt-input"
+        type="text"
+        value={text}
+        onInput={(event) => setText((event.target as HTMLInputElement).value)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") submit();
+        }}
+      />
+      <button type="button" class="term-prompt-submit" onClick={submit}>
+        {prompt.submitLabel}
+      </button>
+    </div>
   );
 }
 

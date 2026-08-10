@@ -17,6 +17,7 @@ export const en: Record<MessageKey, string> = {
   "badge.failed": "Verification failed",
 
   "status.missing": "Not installed yet",
+  "status.not-logged-in": "Not signed in yet",
   "status.unverified": "Installed, but not verified to actually work",
   "status.ok": "Verified working",
   "status.failed": "Verified, but it didn't pass",
@@ -30,6 +31,8 @@ export const en: Record<MessageKey, string> = {
   "action.rerun-verify": "Verify again",
   "action.recheck": "Check again",
   "action.cancel": "Cancel this run",
+  "action.submit-code": "Submit",
+  "action.open-link": "Open the sign-in page",
 
   "card.guardrails": "When it should stop and ask you",
   "card.checklist-title": "What this card needs",

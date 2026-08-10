@@ -110,6 +110,15 @@ export function App({ store }: { store: Store }) {
         title={t(K.terminal.title)}
         lines={model.terminalLines}
         emptyHint={t(K.terminal.empty)}
+        prompt={
+          model.prompt === null
+            ? null
+            : {
+                submitLabel: model.prompt.submitLabel,
+                link: model.prompt.link,
+                onSubmit: (text) => void store.sendInput(text),
+              }
+        }
         chromeExtra={
           model.cancel === null ? null : (
             <Button tone={model.cancel.tone} onClick={() => void store.cancel()}>

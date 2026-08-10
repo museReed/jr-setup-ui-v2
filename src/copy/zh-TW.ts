@@ -20,6 +20,7 @@ export const zhTW: Record<MessageKey, string> = {
   "badge.failed": "驗證沒過",
 
   "status.missing": "還沒安裝",
+  "status.not-logged-in": "還沒登入",
   // 中間那一態是整套設計的重點：結構齊全不等於行為生效。
   "status.unverified": "裝好了，還沒驗過真的生效",
   "status.ok": "驗過生效",
@@ -34,6 +35,8 @@ export const zhTW: Record<MessageKey, string> = {
   "action.rerun-verify": "重跑驗證",
   "action.recheck": "再 check 一次",
   "action.cancel": "取消這一輪",
+  "action.submit-code": "送出",
+  "action.open-link": "打開登入頁面",
 
   "card.claude": "Claude Code",
   "card.guardrails": "它什麼時候該停下來問你",

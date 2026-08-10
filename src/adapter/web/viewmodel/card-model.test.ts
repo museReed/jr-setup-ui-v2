@@ -152,6 +152,7 @@ function appState(
     terminal: [],
     runningAction: null,
     runningRunId: null,
+    runningAcceptsInput: false,
   };
 }
 

@@ -24,6 +24,12 @@ export interface CardCheck {
   id: CheckId;
   // 代號不是文字——domain 不知道畫面上寫什麼，只知道要指哪一句。
   labelKey: MessageKey;
+  // 這一格「還沒完成」時要說什麼。
+  //
+  // ⚠️ 不能只有一句共用的。missing 對不同的格意思不一樣：CLI 那格是「還沒安裝」，
+  // 登入那格是「還沒登入」——共用一句的話，乾淨機器上登入那格會寫「還沒安裝」，
+  // 而學生剛剛才親眼看著它裝完（Mac VM 實測）。沒填就用預設那句。
+  missingKey?: MessageKey;
   capabilities: Capability[];
 }
 

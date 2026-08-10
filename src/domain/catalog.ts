@@ -18,6 +18,9 @@ export const claudeCodeCard: Card = {
     {
       id: "claude-auth",
       labelKey: K.check.claudeAuth,
+      // 這一格沒完成是「還沒登入」，不是「還沒安裝」——共用那句的話，學生剛看著
+      // CLI 裝完，下面卻寫著還沒安裝。
+      missingKey: K.status.notLoggedIn,
       // 登入沒有另外的行為驗證：`claude auth status` 問的就是行為本身。
       capabilities: [
         { kind: "login", action: "login-claude", startKey: K.run.startLoginClaude },

@@ -17,6 +17,7 @@ export const zhCN: Record<MessageKey, string> = {
   "badge.failed": "验证没过",
 
   "status.missing": "还没安装",
+  "status.not-logged-in": "还没登录",
   "status.unverified": "装好了，还没验过真的生效",
   "status.ok": "验过生效",
   "status.failed": "验过，但没通过",
@@ -30,6 +31,8 @@ export const zhCN: Record<MessageKey, string> = {
   "action.rerun-verify": "重跑验证",
   "action.recheck": "再 check 一次",
   "action.cancel": "取消这一轮",
+  "action.submit-code": "送出",
+  "action.open-link": "打开登录页面",
 
   "card.guardrails": "它什么时候该停下来问你",
   "card.checklist-title": "这张卡要完成的事",

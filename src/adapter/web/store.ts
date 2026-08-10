@@ -12,6 +12,7 @@ export interface Store {
   load(): Promise<void>;
   runAction(action: string, checkId?: string, startKey?: MessageKey): Promise<void>;
   cancel(): Promise<void>;
+  sendInput(text: string): Promise<void>;
   toggleEye(id: string, checked: boolean): Promise<void>;
   skip(): Promise<void>;
   goNext(): Promise<void>;
@@ -41,6 +42,7 @@ export function createStore(): Store {
     terminal: [],
     runningAction: null,
     runningRunId: null,
+    runningAcceptsInput: false,
   };
   const listeners = new Set<() => void>();
   // 第幾輪。原始輸出保留最近幾輪要靠它分組（見 viewmodel 的 recentRawOutput）。
@@ -92,7 +94,7 @@ export function createStore(): Store {
       messageKey: event.success ? K.run.done : K.run.failed,
       kind: event.success ? "done-ok" : "done-fail",
     });
-    set({ runningAction: null, runningRunId: null });
+    set({ runningAction: null, runningRunId: null, runningAcceptsInput: false });
   });
 
   return {
@@ -136,6 +138,25 @@ export function createStore(): Store {
 
       try {
         await api.cancel(runId);
+      } catch (error) {
+        reportFailure(error);
+      }
+    },
+
+    // 學生貼進來的授權碼，原封不動送進那個子行程的 stdin。
+    //
+    // 送出去的那一行也印在終端區：剪貼簿看不見，不回顯的話學生不知道自己貼的是
+    // 什麼、有沒有送出去。
+    async sendInput(text) {
+      const runId = state.runningRunId;
+
+      if (runId === null || text === "") {
+        return;
+      }
+
+      try {
+        await api.input(runId, text);
+        push({ source: "output", text: `> ${text}`, kind: "output", run: runSeq });
       } catch (error) {
         reportFailure(error);
       }
@@ -205,8 +226,8 @@ export function createStore(): Store {
       return;
     }
 
-    const { runId } = await api.run(action);
-    set({ runningRunId: runId });
+    const { runId, acceptsInput } = await api.run(action);
+    set({ runningRunId: runId, runningAcceptsInput: acceptsInput });
   }
 
   // 失敗的收尾只有兩件事：講出來，然後把按鈕還給學生。
@@ -228,7 +249,7 @@ export function createStore(): Store {
       push({ source: "notice", messageKey: K.run.failed, kind: "done-fail" });
     }
 
-    set({ runningAction: null, runningRunId: null });
+    set({ runningAction: null, runningRunId: null, runningAcceptsInput: false });
   }
 }
 

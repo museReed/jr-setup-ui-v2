@@ -54,6 +54,8 @@ export interface AppState {
   // 這一輪的把手。取消要指名取消誰——驗證用的是那一格的 id，跑指令用的是伺服器
   // 發的 runId，兩者共用同一顆按鈕。
   readonly runningRunId: string | null;
+  // 這一輪會不會停下來等學生打字（登入要貼授權碼）。
+  readonly runningAcceptsInput: boolean;
 }
 
 export interface ButtonModel {
@@ -82,6 +84,17 @@ export interface ChecklistRow {
   readonly buttons: readonly ButtonModel[];
 }
 
+// 指令停下來等人打字的那一刻。
+export interface PromptModel {
+  readonly submitLabel: string;
+  // 指令輸出裡的那個授權網址。
+  //
+  // ⚠️ 一定要抽出來變成可點的連結：我們刻意擋掉 claude 自動開瀏覽器（它會蓋掉嚮導
+  // 頁面，學生找不到回來的路），而擋掉之後唯一的入口就是這裡。只留在原始輸出裡的話
+  // 那串網址是折行、不可點的（Mac VM 實測，學生就卡在那）。
+  readonly link: { readonly href: string; readonly label: string } | null;
+}
+
 export interface ChecklistModel {
   readonly title: string;
   readonly done: number;
@@ -107,6 +120,9 @@ export interface CardViewModel {
   // 還在跑的時候才給取消。這是學生唯一能主動結束一次等待的路——終端視窗被關掉時
   // 伺服器不會知道，沒有這顆按鈕他只能盯著一排灰按鈕等逾時。
   readonly cancel: ButtonModel | null;
+  // 登入那條會停下來等學生貼授權碼。沒有這一區的話那條路走不完——指令印著
+  // 「Paste code here」，而畫面上沒有任何地方可以貼。
+  readonly prompt: PromptModel | null;
   readonly canAdvance: boolean;
   readonly canSkip: boolean;
   readonly advanceHint: string;
@@ -197,6 +213,12 @@ export function cardModel(state: AppState): CardViewModel {
             tone: "accent",
             disabled: false,
           },
+    prompt: state.runningAcceptsInput
+      ? {
+          submitLabel: t(K.action.submitCode),
+          link: findAuthLink(state.terminal, t(K.action.openLink)),
+        }
+      : null,
     canAdvance: advance,
     canSkip: canSkip(card, progress),
     advanceHint: t(
@@ -220,7 +242,13 @@ function checklistRows(state: AppState): ChecklistRow[] {
     return {
       id: check.id,
       label: t(check.labelKey),
-      hint: t(STATUS_HINT[status]),
+      // 「還沒完成」那句由格子自己決定，其餘狀態共用——只有 missing 的意思會隨
+      // 格子而變（沒裝 / 沒登入），ok 與 failed 不會。
+      hint: t(
+        status === "missing" && check.missingKey !== undefined
+          ? check.missingKey
+          : STATUS_HINT[status],
+      ),
       checked: status === "ok",
       readOnly: true,
       verifiedBy: "system",
@@ -308,6 +336,22 @@ function labelForVerify(
     locale,
     capability.via === "terminal" ? K.action.verifyTerminal : K.action.verifyAuto,
   );
+}
+
+// 從指令輸出裡把授權網址撈出來。
+//
+// ⚠️ 從**最後**一行往前找：登入可以重跑，而每一輪的網址都不一樣（帶著那一輪的
+// state 與 challenge）。拿到第一個的話學生點的是上一輪的連結，貼回來的碼永遠對不上。
+function findAuthLink(
+  entries: readonly TerminalEntry[],
+  label: string,
+): { href: string; label: string } | null {
+  const urls = entries
+    .filter((entry) => entry.source === "output")
+    .flatMap((entry) => entry.text.match(/https?:\/\/\S+/g) ?? []);
+  const last = urls.at(-1);
+
+  return last === undefined ? null : { href: last, label };
 }
 
 // 保留最近幾輪，不是只留最後一輪。

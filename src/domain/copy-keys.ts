@@ -25,6 +25,7 @@ export const K = {
   },
   status: {
     missing: "status.missing",
+    notLoggedIn: "status.not-logged-in",
     unverified: "status.unverified",
     ok: "status.ok",
     failed: "status.failed",
@@ -39,6 +40,8 @@ export const K = {
     rerunVerify: "action.rerun-verify",
     recheck: "action.recheck",
     cancel: "action.cancel",
+    submitCode: "action.submit-code",
+    openLink: "action.open-link",
   },
   card: {
     // 卡片的名字與格子的名字是兩件事：這張卡叫「Claude Code」，它第一格叫
