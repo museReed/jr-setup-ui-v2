@@ -69,7 +69,9 @@ say "啟動嚮導（關掉這個視窗就會結束）"
 # 等伺服器起來再開瀏覽器：開太早會看到「無法連線」，學生第一眼就以為壞了。
 (
   for _ in $(seq 1 40); do
-    if curl -fsS -o /dev/null "http://localhost:${PORT}/"; then
+    # -S 不能加：伺服器還沒起來時它會把「連不上」印在學生眼前，而那正是預期中的
+    # 每一輪。學生看到紅字就以為壞了。
+    if curl -fs -o /dev/null "http://localhost:${PORT}/"; then
       open "http://localhost:${PORT}"
       exit 0
     fi
