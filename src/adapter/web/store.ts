@@ -11,6 +11,7 @@ export interface Store {
   subscribe(listener: () => void): () => void;
   load(): Promise<void>;
   runAction(action: string, checkId?: string, startKey?: MessageKey): Promise<void>;
+  openTerminal(action: string): Promise<void>;
   cancel(): Promise<void>;
   sendInput(text: string): Promise<void>;
   toggleEye(id: string, checked: boolean): Promise<void>;
@@ -122,6 +123,16 @@ export function createStore(): Store {
     async runAction(action, checkId, startKey) {
       try {
         await perform(action, checkId, startKey);
+      } catch (error) {
+        reportFailure(error);
+      }
+    },
+
+    // 開工作視窗不代表開始一輪執行：請求一回來學生仍要在那個視窗裡操作，所以這裡
+    // 不設 runningAction，也不等待 run-done。
+    async openTerminal(action) {
+      try {
+        await api.openTerminal(action);
       } catch (error) {
         reportFailure(error);
       }

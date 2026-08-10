@@ -78,6 +78,7 @@ export const api = {
   input: (runId: string, text: string) => post("/api/input", { runId, text }),
   cancel: (runId: string) => post("/api/cancel", { runId }),
   verify: (checkId: string) => post("/api/verify", { checkId }),
+  openTerminal: (action: string) => post("/api/open-terminal", { action }),
 
   // 按下去才抓——開頁就把十幾份教學全載進來，學生九成看不到。
   // 教學內容分語言存，所以網址要帶語言：翻譯過的步驟跟 UI 是同一件事。

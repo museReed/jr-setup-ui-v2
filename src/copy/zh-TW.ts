@@ -11,8 +11,18 @@ export const zhTW: Record<MessageKey, string> = {
   "check.hook": "一次只跑一個指令",
   "check.allowlist": "常用指令不用每次問你",
 
-  "eye.claude-fullscreen":
-    "第一次跑起來時，畫面問你要用哪種顯示模式——選好了就勾這格",
+  "manual-step.fullscreen-open-title": "第一步：開一個視窗，把這兩件做完",
+  "manual-step.fullscreen-open-button": "開啟 Claude Code",
+  "eye.fullscreen-yes": "跳出方框時按 1. Yes, try it",
+  "eye.fullscreen-yes-detail": "畫面會整個重畫一次，方框消失",
+  "eye.fullscreen-mouse": "打一句話，用滑鼠點那句話中間",
+  "eye.fullscreen-mouse-detail":
+    "就在剛才那個視窗裡；游標會跳到你點的位置，不用按左右鍵移過去",
+  "manual-step.fullscreen-proof-title": "第二步：再開一個，圈選代碼貼回來",
+  "manual-step.fullscreen-proof-button": "開啟並送出測試句",
+  "eye.fullscreen-copy": "圈選代碼那一行，貼進下面的欄位",
+  "eye.fullscreen-copy-detail":
+    "放開滑鼠就複製好了，不要按 Ctrl+C——在這個模式下它是中斷執行",
 
   "badge.untouched": "還沒開始",
   "badge.visited-incomplete": "進行中",

@@ -15,7 +15,7 @@ import {
 
 const CLI = claudeCodeCard.checks[0]!;
 const AUTH = claudeCodeCard.checks[1]!;
-const EYE = "eye-claude-fullscreen";
+const MANUAL_DONE = ["fullscreen-yes", "fullscreen-mouse", "fullscreen-copy"];
 
 test("宣告了驗證的那格才會降級成 unverified", () => {
   const state = progress({ claude: "ok", "claude-auth": "ok" }, {});
@@ -27,16 +27,16 @@ test("宣告了驗證的那格才會降級成 unverified", () => {
   assert.equal(effectiveStatus(AUTH, state), "ok");
 });
 
-test("兩格都 ok 但沒驗過、沒勾眼睛 → 還沒完成", () => {
+test("兩格都 ok 但沒驗過、沒完成人工項 → 還沒完成", () => {
   const state = progress({ claude: "ok", "claude-auth": "ok" }, {});
 
   assert.equal(isComplete(claudeCodeCard, state), false);
 });
 
-test("驗過又勾了眼睛才算完成", () => {
+test("驗過又完成三格才算完成", () => {
   const state = progress(
     { claude: "ok", "claude-auth": "ok" },
-    { verified: ["claude"], attempted: ["claude"], eyeChecked: [EYE] },
+    { verified: ["claude"], attempted: ["claude"], eyeChecked: MANUAL_DONE },
   );
 
   assert.equal(isComplete(claudeCodeCard, state), true);
@@ -45,10 +45,23 @@ test("驗過又勾了眼睛才算完成", () => {
   assert.equal(cardDisplayState(claudeCodeCard, state), "complete");
 });
 
+test("paste-proof 沒完成時整張卡仍未完成", () => {
+  const state = progress(
+    { claude: "ok", "claude-auth": "ok" },
+    {
+      verified: ["claude"],
+      attempted: ["claude"],
+      eyeChecked: ["fullscreen-yes", "fullscreen-mouse"],
+    },
+  );
+
+  assert.equal(isComplete(claudeCodeCard, state), false);
+});
+
 test("驗證失敗：鎖住下一張，給逆口，顯示為失敗", () => {
   const state = progress(
     { claude: "failed", "claude-auth": "ok" },
-    { attempted: ["claude"], eyeChecked: [EYE] },
+    { attempted: ["claude"], eyeChecked: MANUAL_DONE },
   );
 
   assert.equal(canAdvance(claudeCodeCard, state), false);
@@ -60,7 +73,7 @@ test("驗證失敗：鎖住下一張，給逆口，顯示為失敗", () => {
 test("驗證跑過、狀態仍是 unverified → 走得掉但不算完成", () => {
   const state = progress(
     { claude: "ok", "claude-auth": "ok" },
-    { attempted: ["claude"], eyeChecked: [EYE] },
+    { attempted: ["claude"], eyeChecked: MANUAL_DONE },
   );
 
   assert.equal(canAdvance(claudeCodeCard, state), true);

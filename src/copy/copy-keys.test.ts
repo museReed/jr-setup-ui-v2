@@ -5,6 +5,8 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { K } from "../domain/copy-keys.ts";
+import { FULLSCREEN_PROOF } from "../domain/catalog.ts";
+import { FULLSCREEN_PROMPT } from "../adapter/server/terminal-opener.ts";
 import { en } from "./en.ts";
 import { zhCN } from "./zh-CN.ts";
 import { zhTW } from "./zh-TW.ts";
@@ -37,6 +39,13 @@ test("三個語言的代號集合完全一樣", () => {
 
   assert.deepEqual(Object.keys(zhCN).sort(), tw);
   assert.deepEqual(Object.keys(en).sort(), tw);
+});
+
+test("送進終端的提示詞由 expected 常數組成", () => {
+  assert.equal(
+    FULLSCREEN_PROMPT,
+    `請原樣印出這一行，不要加任何說明：${FULLSCREEN_PROOF}`,
+  );
 });
 
 // 把 K 走成 ["K.card.claude", "K.check.claude", …]——比對的是**程式碼裡怎麼寫**，

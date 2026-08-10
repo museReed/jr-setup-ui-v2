@@ -1,6 +1,8 @@
 import type { Card } from "./card.ts";
 import { K } from "./copy-keys.ts";
 
+export const FULLSCREEN_PROOF = "fullscreen-copy-ok-7f3a91";
+
 export const claudeCodeCard: Card = {
   id: "claude",
   sectionId: "env",
@@ -29,10 +31,41 @@ export const claudeCodeCard: Card = {
   ],
   capabilities: [
     {
+      kind: "manual-step",
+      id: "fullscreen-open",
+      action: "fullscreen-open",
+      titleKey: K.manualStep.fullscreenOpenTitle,
+      buttonKey: K.manualStep.fullscreenOpenButton,
+    },
+    {
       kind: "eye-check",
-      id: "eye-claude-fullscreen",
-      promptKey: K.eye.claudeFullscreen,
+      id: "fullscreen-yes",
+      stepId: "fullscreen-open",
+      promptKey: K.eye.fullscreenYes,
+      detailKey: K.eye.fullscreenYesDetail,
+    },
+    {
+      kind: "eye-check",
+      id: "fullscreen-mouse",
+      stepId: "fullscreen-open",
+      promptKey: K.eye.fullscreenMouse,
+      detailKey: K.eye.fullscreenMouseDetail,
+    },
+    {
+      kind: "manual-step",
+      id: "fullscreen-proof",
+      action: "fullscreen-proof",
+      titleKey: K.manualStep.fullscreenProofTitle,
+      buttonKey: K.manualStep.fullscreenProofButton,
+    },
+    {
+      kind: "paste-proof",
+      id: "fullscreen-copy",
+      stepId: "fullscreen-proof",
+      promptKey: K.eye.fullscreenCopy,
+      detailKey: K.eye.fullscreenCopyDetail,
       walkthrough: "fullscreen-copy",
+      expected: FULLSCREEN_PROOF,
     },
     { kind: "recheck" },
   ],

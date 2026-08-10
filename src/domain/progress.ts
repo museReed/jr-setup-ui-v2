@@ -95,9 +95,12 @@ function hasFailure(card: Card, state: ProgressState): boolean {
   return card.checks.some((check) => effectiveStatus(check, state) === "failed");
 }
 
-// 人工勾選掛在卡片級：它們對應的不是某一格程式檢查，而是「只有你看得到」的事。
+// 人工完成項掛在卡片級：眼睛確認與貼回驗證共用同一個完成集合。
 function eyeChecks(card: Card) {
-  return findCapabilities(card, "eye-check");
+  return [
+    ...findCapabilities(card, "eye-check"),
+    ...findCapabilities(card, "paste-proof"),
+  ];
 }
 
 function rawStatus(checkId: CheckId, state: ProgressState): CheckStatus {

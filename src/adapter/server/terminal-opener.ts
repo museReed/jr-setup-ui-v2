@@ -3,6 +3,7 @@ import { chmodSync, existsSync, readFileSync, rmSync, writeFileSync } from "node
 import { tmpdir } from "node:os";
 import path from "node:path";
 
+import { FULLSCREEN_PROOF } from "../../domain/catalog.ts";
 import type { TerminalOpener } from "../../usecase/ports.ts";
 import type { FakeEnv } from "./fake-env.ts";
 
@@ -20,6 +21,22 @@ const ALLOWLIST_TIMEOUT_MS = 240_000;
 // 固定值就夠——這一格要抓的是「白名單有沒有生效」，不是防作弊。而它要夠特別，
 // 不能是模型憑印象也寫得出來的字。
 const ALLOWLIST_TOKEN = "allowlist-ok-9d4b71";
+
+export const FULLSCREEN_PROMPT =
+  `請原樣印出這一行，不要加任何說明：${FULLSCREEN_PROOF}`;
+
+// verify 要等一個結論；這兩顆只是幫學生把工作視窗開起來。沿用 verify 的等待會讓
+// 學生留在視窗裡操作時，網頁上每顆按鈕灰掉三分鐘。
+export function openWindow(action: string): void {
+  if (action !== "fullscreen-open" && action !== "fullscreen-proof") {
+    throw new Error(`不認得的開窗動作：${action}`);
+  }
+
+  const stamp = `${process.pid}-${counter()}`;
+  const launcher = writeFullscreenLauncher(action, stamp);
+  const { cmd, args } = openCommand(launcher);
+  spawn(cmd, args, { detached: true, stdio: "ignore" }).unref();
+}
 
 export function createTerminalOpener(fake: FakeEnv | null): TerminalOpener {
   return {
@@ -264,6 +281,27 @@ function writeAskClaudeLauncher(
     `command claude ${CLAUDE_ACCEPT_EDITS} '${prompt}'`,
   ];
   writeFileSync(file, `#!/bin/zsh -i\n${body.join("\n")}\n`);
+  chmodSync(file, 0o755);
+  return file;
+}
+
+function writeFullscreenLauncher(
+  action: "fullscreen-open" | "fullscreen-proof",
+  stamp: string,
+): string {
+  const prompt = action === "fullscreen-proof" ? ` '${FULLSCREEN_PROMPT}'` : "";
+
+  if (process.platform === "win32") {
+    const file = path.join(tmpdir(), `jr-${action}-${stamp}.ps1`);
+    // PowerShell 沒有 `command`；Windows 上沒有 shell function 要繞過，直接叫執行檔。
+    writeFileSync(file, `﻿claude${prompt}\n`, "utf8");
+    return file;
+  }
+
+  const file = path.join(tmpdir(), `jr-${action}-${stamp}.command`);
+  // `command` 繞過 ~/.zshrc 裡可能存在的 claude 包裝函式；提問留在 launcher 裡，
+  // 避免中文與引號經過 open 的多層參數解析。
+  writeFileSync(file, `#!/bin/zsh -i\ncommand claude${prompt}\n`);
   chmodSync(file, 0o755);
   return file;
 }

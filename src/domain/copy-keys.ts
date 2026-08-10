@@ -15,7 +15,18 @@ export const K = {
     allowlist: "check.allowlist",
   },
   eye: {
-    claudeFullscreen: "eye.claude-fullscreen",
+    fullscreenYes: "eye.fullscreen-yes",
+    fullscreenYesDetail: "eye.fullscreen-yes-detail",
+    fullscreenMouse: "eye.fullscreen-mouse",
+    fullscreenMouseDetail: "eye.fullscreen-mouse-detail",
+    fullscreenCopy: "eye.fullscreen-copy",
+    fullscreenCopyDetail: "eye.fullscreen-copy-detail",
+  },
+  manualStep: {
+    fullscreenOpenTitle: "manual-step.fullscreen-open-title",
+    fullscreenOpenButton: "manual-step.fullscreen-open-button",
+    fullscreenProofTitle: "manual-step.fullscreen-proof-title",
+    fullscreenProofButton: "manual-step.fullscreen-proof-button",
   },
   badge: {
     untouched: "badge.untouched",

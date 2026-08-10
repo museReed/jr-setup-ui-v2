@@ -35,6 +35,10 @@ export interface CheckItemProps {
   onHelp?: (() => void) | undefined;
   helpLabel?: string;
   onChange?: ((checked: boolean) => void) | undefined;
+  proofInput?: {
+    value: string;
+    onInput: (value: string) => void;
+  } | undefined;
 }
 
 export function CheckItem({
@@ -47,39 +51,51 @@ export function CheckItem({
   onHelp,
   helpLabel = "?",
   onChange,
+  proofInput,
 }: CheckItemProps) {
   return (
     // ⚠️ 按鈕不能放在 <label> 裡：點按鈕會連帶觸發 label 的 for，把勾選一起切掉。
     // 所以 label 只包到文字為止，動作排在它旁邊。
     <div class="check-row">
-      {/* 唯讀不需要額外的 class：DS 的 glitch 變體已經有
-          `.ds-check:has(input:disabled){cursor:not-allowed}`。自己再加一條只會分岔。
-          is-system / is-manual 只用來重新指向顏色 token，不覆寫任何 ds-* 規則。 */}
-      <label class={verifiedBy === "manual" ? "ds-check is-manual" : "ds-check is-system"}>
-        <input
-          type="checkbox"
-          checked={checked}
-          disabled={readOnly}
-          onChange={(event) => onChange?.(event.currentTarget.checked)}
-        />
-        <span class="ds-check-box" aria-hidden="true">
-          <svg viewBox="0 0 24 24">
-            <path d={TICK_PATH} />
-          </svg>
-        </span>
-        <span class="ds-check-text">
-          {/* 文字要包一層 .ds-check-label 並且把同一段字寫進 data-text——hover 時
-              DS 用 content:attr(data-text) 複製成兩層做訊號干擾感。少了這一層，
-              動畫不會報錯，只是靜靜地不發生。 */}
-          <span class="ds-check-label" data-text={label}>
-            {label}
+      <div class="check-row-content">
+        {/* 唯讀不需要額外的 class：DS 的 glitch 變體已經有
+            `.ds-check:has(input:disabled){cursor:not-allowed}`。自己再加一條只會分岔。
+            is-system / is-manual 只用來重新指向顏色 token，不覆寫任何 ds-* 規則。 */}
+        <label class={verifiedBy === "manual" ? "ds-check is-manual" : "ds-check is-system"}>
+          <input
+            type="checkbox"
+            checked={checked}
+            disabled={readOnly}
+            onChange={(event) => onChange?.(event.currentTarget.checked)}
+          />
+          <span class="ds-check-box" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d={TICK_PATH} />
+            </svg>
           </span>
-          {/* 說明文字掛自己的 class：DS 把勾選後的 small 寫死成青色（不吃 --gl-ink），
-              橘的那幾格會變成「標題橘、底下那句青」——兩種顏色本來就是用來分「誰負責
-              驗」的，混在同一格裡就沒有意義了。 */}
-          {hint === undefined ? null : <small class="check-detail">{hint}</small>}
-        </span>
-      </label>
+          <span class="ds-check-text">
+            {/* 文字要包一層 .ds-check-label 並且把同一段字寫進 data-text——hover 時
+                DS 用 content:attr(data-text) 複製成兩層做訊號干擾感。少了這一層，
+                動畫不會報錯，只是靜靜地不發生。 */}
+            <span class="ds-check-label" data-text={label}>
+              {label}
+            </span>
+            {/* 說明文字掛自己的 class：DS 把勾選後的 small 寫死成青色（不吃 --gl-ink），
+                橘的那幾格會變成「標題橘、底下那句青」——兩種顏色本來就是用來分「誰負責
+                驗」的，混在同一格裡就沒有意義了。 */}
+            {hint === undefined ? null : <small class="check-detail">{hint}</small>}
+          </span>
+        </label>
+        {proofInput === undefined ? null : (
+          <input
+            class="check-proof-input"
+            type="text"
+            value={proofInput.value}
+            aria-label={label}
+            onInput={(event) => proofInput.onInput(event.currentTarget.value)}
+          />
+        )}
+      </div>
       {actions === undefined && onHelp === undefined ? null : (
         <div class="check-row-actions">
           {actions}
@@ -97,6 +113,24 @@ export function CheckItem({
         </div>
       )}
     </div>
+  );
+}
+
+export interface ChecklistStepProps {
+  title: string;
+  action: ComponentChildren;
+  children: ComponentChildren;
+}
+
+export function ChecklistStep({ title, action, children }: ChecklistStepProps) {
+  return (
+    <section class="check-step">
+      <div class="check-step-head">
+        <strong>{title}</strong>
+        {action}
+      </div>
+      {children}
+    </section>
   );
 }
 

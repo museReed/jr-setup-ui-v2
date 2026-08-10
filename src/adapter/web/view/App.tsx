@@ -3,8 +3,8 @@ import { useEffect, useState } from "preact/hooks";
 import { api } from "../api.ts";
 import { copy } from "../../../copy/index.ts";
 import { K } from "../../../domain/copy-keys.ts";
-import type { ButtonModel } from "../viewmodel/card-model.ts";
-import { cardModel } from "../viewmodel/card-model.ts";
+import type { ButtonModel, ChecklistRow } from "../viewmodel/card-model.ts";
+import { cardModel, matchesPasteProof } from "../viewmodel/card-model.ts";
 import type { Store } from "../store.ts";
 import {
   Button,
@@ -15,6 +15,7 @@ import {
   Logo,
   Terminal,
 } from "./ds/index.ts";
+import { ChecklistStep } from "./ds/Checklist.tsx";
 import { Walkthrough, type WalkthroughDoc } from "./Walkthrough.tsx";
 
 // View 只做兩件事：把 ViewModel 的欄位貼到設計系統元件上，以及把使用者的動作
@@ -23,6 +24,7 @@ export function App({ store }: { store: Store }) {
   const [, bump] = useState(0);
   // 彈窗開著沒開著是純呈現狀態，沒有領域意義——不進 store。
   const [walkthrough, setWalkthrough] = useState<WalkthroughDoc | null>(null);
+  const [pasteValues, setPasteValues] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const unsubscribe = store.subscribe(() => bump((n) => n + 1));
@@ -39,11 +41,55 @@ export function App({ store }: { store: Store }) {
       key={button.action}
       tone={button.tone}
       disabled={button.disabled}
-      onClick={() => void store.runAction(button.action, button.checkId, button.startKey)}
+      onClick={() => {
+        if (button.opensTerminal === true) {
+          void store.openTerminal(button.action);
+          return;
+        }
+
+        void store.runAction(button.action, button.checkId, button.startKey);
+      }}
     >
       {button.label}
     </Button>
   );
+
+  const rowView = (row: ChecklistRow) => {
+    const expected = row.expected;
+    const walkthroughId = row.walkthroughId;
+
+    return (
+      <CheckItem
+        key={row.id}
+        checked={row.checked}
+        label={row.label}
+        readOnly={row.readOnly}
+        verifiedBy={row.verifiedBy}
+        hint={row.hint}
+        actions={row.buttons.length === 0 ? undefined : row.buttons.map(action)}
+        proofInput={
+          expected === undefined
+            ? undefined
+            : {
+                value: pasteValues[row.id] ?? "",
+                onInput: (value) => {
+                  setPasteValues((current) => ({ ...current, [row.id]: value }));
+                  void store.toggleEye(row.id, matchesPasteProof(value, expected));
+                },
+              }
+        }
+        onHelp={
+          walkthroughId === undefined
+            ? undefined
+            : () => void openWalkthrough(walkthroughId, state.locale, setWalkthrough)
+        }
+        helpLabel={t(K.card.help)}
+        onChange={
+          row.readOnly ? undefined : (checked) => void store.toggleEye(row.id, checked)
+        }
+      />
+    );
+  };
 
   return (
     <main class="wizard-layout">
@@ -83,23 +129,13 @@ export function App({ store }: { store: Store }) {
           done={model.checklist.done}
           total={model.checklist.total}
         >
-          {model.checklist.rows.map((row) => (
-            <CheckItem
-              key={row.id}
-              checked={row.checked}
-              label={row.label}
-              readOnly={row.readOnly}
-              verifiedBy={row.verifiedBy}
-              hint={row.hint}
-              actions={row.buttons.length === 0 ? undefined : row.buttons.map(action)}
-              onHelp={
-                row.walkthroughId === undefined
-                  ? undefined
-                  : () => void openWalkthrough(row.walkthroughId!, state.locale, setWalkthrough)
-              }
-              helpLabel={t(K.card.help)}
-              onChange={(checked) => void store.toggleEye(row.id, checked)}
-            />
+          {model.checklist.rows
+            .filter((row) => row.stepId === undefined)
+            .map(rowView)}
+          {model.checklist.steps.map((step) => (
+            <ChecklistStep key={step.id} title={step.title} action={action(step.button)}>
+              {step.rows.map(rowView)}
+            </ChecklistStep>
           ))}
         </Checklist>
 

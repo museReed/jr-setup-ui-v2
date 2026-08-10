@@ -67,6 +67,8 @@ export interface ButtonModel {
   readonly checkId?: string;
   // 按下去的那一刻要講的那句白話（驗證那條的訊息由伺服器發，所以沒有）。
   readonly startKey?: MessageKey;
+  // 這顆只開工作視窗，不建立會等待完成的 run。
+  readonly opensTerminal?: boolean;
 }
 
 export interface ChecklistRow {
@@ -82,6 +84,16 @@ export interface ChecklistRow {
   readonly walkthroughId: string | undefined;
   // 這一格自己的按鈕。掛在格內而不是卡片底下——學生才不用自己配對哪顆帶他做哪一格。
   readonly buttons: readonly ButtonModel[];
+  readonly stepId: string | undefined;
+  // 有 expected 才畫貼回輸入框；勾選結果仍寫進 eyeChecked。
+  readonly expected: string | undefined;
+}
+
+export interface ChecklistStep {
+  readonly id: string;
+  readonly title: string;
+  readonly button: ButtonModel;
+  readonly rows: readonly ChecklistRow[];
 }
 
 // 指令停下來等人打字的那一刻。
@@ -100,6 +112,7 @@ export interface ChecklistModel {
   readonly done: number;
   readonly total: number;
   readonly rows: readonly ChecklistRow[];
+  readonly steps: readonly ChecklistStep[];
 }
 
 export interface CardViewModel {
@@ -168,7 +181,7 @@ export function cardModel(state: AppState): CardViewModel {
   const { progress } = state;
   const t = (key: MessageKey): string => copy(state.locale, key);
   const display = cardDisplayState(card, progress);
-  const rows = checklistRows(state);
+  const checklist = checklistModel(state);
   const advance = canAdvance(card, progress);
 
   const badge = BADGES[display];
@@ -180,12 +193,7 @@ export function cardModel(state: AppState): CardViewModel {
     logoId: "logo-claude",
     display,
     badge: { text: t(badge.key), tone: badge.tone },
-    checklist: {
-      title: t(K.card.checklistTitle),
-      done: rows.filter((row) => row.checked).length,
-      total: rows.length,
-      rows,
-    },
+    checklist,
     cardButtons:
       findCapability(card, "recheck") === undefined
         ? []
@@ -231,8 +239,8 @@ export function cardModel(state: AppState): CardViewModel {
   };
 }
 
-// 程式判定的格與學生勾的格排在同一張清單裡，每一格帶著自己的按鈕。
-function checklistRows(state: AppState): ChecklistRow[] {
+// 程式判定的格與學生完成的格排在同一張清單裡；有 stepId 的格再掛回自己的步驟。
+function checklistModel(state: AppState): ChecklistModel {
   const card = activeCard(state);
   const { progress } = state;
   const t = (key: MessageKey): string => copy(state.locale, key);
@@ -254,23 +262,78 @@ function checklistRows(state: AppState): ChecklistRow[] {
       verifiedBy: "system",
       walkthroughId: undefined,
       buttons: rowButtons(check, state),
+      stepId: undefined,
+      expected: undefined,
     };
   });
 
-  const eyes = findCapabilities(card, "eye-check").map(
-    (capability): ChecklistRow => ({
-      id: capability.id,
-      label: t(capability.promptKey),
-      hint: t(K.hint.manualOnly),
-      checked: progress.eyeChecked.has(capability.id),
-      readOnly: false,
-      verifiedBy: "manual",
-      walkthroughId: capability.walkthrough,
-      buttons: [],
+  const manual = card.capabilities.flatMap((capability): ChecklistRow[] => {
+    if (capability.kind === "eye-check") {
+      return [
+        {
+          id: capability.id,
+          label: t(capability.promptKey),
+          hint: t(capability.detailKey ?? K.hint.manualOnly),
+          checked: progress.eyeChecked.has(capability.id),
+          readOnly: false,
+          verifiedBy: "manual",
+          walkthroughId: capability.walkthrough,
+          buttons: [],
+          stepId: capability.stepId,
+          expected: undefined,
+        },
+      ];
+    }
+
+    if (capability.kind === "paste-proof") {
+      return [
+        {
+          id: capability.id,
+          label: t(capability.promptKey),
+          hint: t(capability.detailKey ?? K.hint.manualOnly),
+          checked: progress.eyeChecked.has(capability.id),
+          readOnly: true,
+          verifiedBy: "system",
+          walkthroughId: capability.walkthrough,
+          buttons: [],
+          stepId: capability.stepId,
+          expected: capability.expected,
+        },
+      ];
+    }
+
+    return [];
+  });
+
+  const rows = [...system, ...manual];
+  const busy = state.runningAction !== null;
+  const steps = findCapabilities(card, "manual-step").map(
+    (step): ChecklistStep => ({
+      id: step.id,
+      title: t(step.titleKey),
+      button: {
+        action: step.action,
+        label: t(step.buttonKey),
+        tone: "accent",
+        disabled: busy,
+        opensTerminal: true,
+      },
+      rows: manual.filter((row) => row.stepId === step.id),
     }),
   );
 
-  return [...system, ...eyes];
+  return {
+    title: t(K.card.checklistTitle),
+    done: rows.filter((row) => row.checked).length,
+    total: rows.length,
+    rows,
+    steps,
+  };
+}
+
+export function matchesPasteProof(pasted: string, expected: string): boolean {
+  // 圈選很難剛好停在字尾，貼回來時常會黏到空白或換行。
+  return pasted.trim() === expected;
 }
 
 // ⚠️ 只讀 capabilities，不問「這張卡是什麼種類」。

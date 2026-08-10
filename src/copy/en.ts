@@ -8,8 +8,20 @@ export const en: Record<MessageKey, string> = {
   "check.hook": "One command at a time",
   "check.allowlist": "Common commands stop asking every time",
 
-  "eye.claude-fullscreen":
-    "The first time it runs, it asks which display mode you want — tick this once you've picked",
+  "manual-step.fullscreen-open-title":
+    "Step 1: Open a window and finish these two things",
+  "manual-step.fullscreen-open-button": "Open Claude Code",
+  "eye.fullscreen-yes": "When the box appears, press 1. Yes, try it",
+  "eye.fullscreen-yes-detail": "The whole screen redraws once and the box disappears",
+  "eye.fullscreen-mouse": "Type a sentence, then click the middle of it with your mouse",
+  "eye.fullscreen-mouse-detail":
+    "Do this in the same window you just opened; the cursor jumps where you click, without using the arrow keys",
+  "manual-step.fullscreen-proof-title":
+    "Step 2: Open another window, select the code, and paste it back",
+  "manual-step.fullscreen-proof-button": "Open and send the test sentence",
+  "eye.fullscreen-copy": "Select the line with the code and paste it into the field below",
+  "eye.fullscreen-copy-detail":
+    "Releasing the mouse copies it; don't press Ctrl+C—in this mode that interrupts execution",
 
   "badge.untouched": "Not started",
   "badge.visited-incomplete": "In progress",

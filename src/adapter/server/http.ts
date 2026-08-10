@@ -4,7 +4,12 @@ import path from "node:path";
 
 import type { ServerContext } from "./context.ts";
 import { cancelRun, sendRunInput, startRun } from "./controllers/run.ts";
-import { setEyeCheck, skipCard, visitCard } from "./controllers/progress.ts";
+import {
+  openTerminalWindow,
+  setEyeCheck,
+  skipCard,
+  visitCard,
+} from "./controllers/progress.ts";
 import { getState, recheck } from "./controllers/state.ts";
 import { startVerify } from "./controllers/verify.ts";
 import { getWalkthrough } from "./controllers/walkthrough.ts";
@@ -26,6 +31,7 @@ const ROUTES: Readonly<Record<string, Handler>> = {
   "POST /api/input": sendRunInput,
   "POST /api/cancel": cancelRun,
   "POST /api/verify": startVerify,
+  "POST /api/open-terminal": openTerminalWindow,
   "POST /api/eye-check": setEyeCheck,
   "POST /api/skip": skipCard,
   "POST /api/visit": visitCard,

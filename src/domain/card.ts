@@ -10,9 +10,34 @@ export type Capability =
   | { kind: "install"; action: string; startKey: MessageKey }
   | { kind: "verify"; via: "auto" | "terminal"; action: string }
   | { kind: "login"; action: string; startKey: MessageKey }
+  | {
+      kind: "manual-step";
+      id: string;
+      titleKey: MessageKey;
+      action: string;
+      buttonKey: MessageKey;
+    }
   // walkthrough：這一格有沒有編過「怎麼做」的教學。明寫在卡片定義裡而不是靠 id
   // 對應猜——沒編過的格子不該畫按鈕，按出一個空彈窗比沒有按鈕更讓人困惑。
-  | { kind: "eye-check"; id: string; promptKey: MessageKey; walkthrough?: string }
+  | {
+      kind: "eye-check";
+      id: string;
+      promptKey: MessageKey;
+      // 舊版原本畫成「三格 + 兩顆不知道對應誰的按鈕」，學生得自己配對哪顆
+      // 按鈕帶他做哪一格（Reed 實測）；stepId 把它們綁回去。
+      stepId?: string;
+      detailKey?: MessageKey;
+      walkthrough?: string;
+    }
+  | {
+      kind: "paste-proof";
+      id: string;
+      stepId: string;
+      promptKey: MessageKey;
+      detailKey?: MessageKey;
+      walkthrough?: string;
+      expected: string;
+    }
   | { kind: "recheck" };
 
 // 一張卡上的一格。
