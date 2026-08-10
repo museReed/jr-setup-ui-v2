@@ -10,6 +10,10 @@ import { readJson, readString, sendJson } from "../respond.ts";
 import { verifyHookBehavior } from "../verify-hook.ts";
 
 // 自動驗證：程式自己問得到答案的那幾題。
+//
+// ⚠️ 目前 catalog 裡沒有任何一格宣告 via: "auto"——攔截器那格本來是，後來改成開真的
+// claude（理由見 catalog.ts）。這張表留著是因為 verifyHookBehavior 仍然有用：它答的是
+// 「腳本自己會不會擋」，`scripts/try-guardrails.mjs` 靠它做不花錢的自檢。
 const AUTO_VERIFIERS: Readonly<
   Record<string, () => Promise<{ passed: boolean; lines: readonly string[] }>>
 > = {
@@ -53,9 +57,8 @@ export async function startVerify(
 
   const { card, check, capability } = found;
 
-  // 合併卡：兩份都裝好才輪到驗證。順序反了驗的是「只裝了一半」的狀態，而那種
-  // 驗證多半會過——綠燈就長在一個沒做完的東西上。
-  if (!canVerifyYet(card, ctx.store.snapshot())) {
+  // 這一格自己裝好了才輪到驗證——沒裝的東西沒得驗。隔壁格還沒裝不關這一格的事。
+  if (!canVerifyYet(check, ctx.store.snapshot())) {
     sendJson(response, 409, { errorKey: K.run.verifyBlocked });
     return;
   }

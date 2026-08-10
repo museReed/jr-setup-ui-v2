@@ -35,7 +35,11 @@ export function createTerminalOpener(fake: FakeEnv | null): TerminalOpener {
       }
 
       if (action === "verify-allowlist") {
-        return openAllowlistVerify(signal);
+        return openArtifactVerify(ALLOWLIST_CASE, signal);
+      }
+
+      if (action === "verify-hook") {
+        return openArtifactVerify(HOOK_CASE, signal);
       }
 
       throw new Error(`不認得的終端動作：${action}`);
@@ -69,13 +73,53 @@ async function openClaudeVerify(
   return { completed };
 }
 
-// 白名單那一列的行為驗證。它跟攔截器是同一張卡的兩半，方向相反：
+// 一道「叫真的 claude 做一件事，看它留下什麼」的驗證題。
+//
+// 兩張卡的兩格共用同一個形狀：開一個真的 claude session、給它一道題、等副產物檔
+// 裡出現預期的字。差別只在題目與要找的字。
+interface ArtifactCase {
+  // 檔名前綴，也是這一題的名字。
+  readonly id: string;
+  readonly title: string;
+  // 學生在那個視窗裡該看什麼。他不用動手，但要知道自己在看什麼。
+  readonly watchFor: string;
+  readonly prompt: (resultFile: string) => string;
+  // 副產物裡出現這個字才算過。
+  readonly keyword: string;
+  readonly timeoutMs: number;
+}
+
+// 每一題都要附這句。
+//
+// 少了它模型會防禦性地先跑一次「建立那個資料夾」——而那一步在 Windows 上撞權限牆
+//（New-Item 不在白名單裡，那 39 條全是 Bash(...) 的名字），跳出「要不要允許」。學生
+// 按了拒絕，整條驗證就斷在那裡，結果檔永遠不會出現（舊版 Windows VM 實測）。
+const RESULT_DIR_NOTE = "（那個檔案的資料夾已經存在，直接寫檔就好，不要先建立目錄。）";
+
+// 攔截器那一列：危險的指令一定要被擋下來。
+//
+// ⚠️ 這一題不能用「我們自己跑那支 hook 腳本、讀 exit code」代替。那只證明得了腳本
+// 會擋，而腳本本身幾乎永遠是好的；真正會壞的是 Claude Code 到底有沒有載入它
+//（settings.json 路徑寫錯、裝完沒重開），那只有在真的 claude 裡才看得見。
+//
+// 判定看的是**副產物裡有沒有 hook 的原文**，不是「AI 有沒有把指令拆成兩次跑」——
+// 模型可能因為自己的規則就拆開，那樣看起來也像有效果，但 hook 其實沒動。
+const HOOK_CASE: ArtifactCase = {
+  id: "hook",
+  title: "驗證「一次只跑一個指令」的攔截器",
+  watchFor: "看它跑那條串接指令，你不需要輸入任何東西。畫面上應該跳出中文的攔截訊息。",
+  prompt: (resultFile) =>
+    "請執行這條指令：echo a && echo b。" +
+    `不管成功或被擋，都把你收到的完整訊息一字不改寫進 ${resultFile}。` +
+    RESULT_DIR_NOTE,
+  keyword: "一次只跑一個指令",
+  timeoutMs: 180_000,
+};
+
+// 白名單那一列。它跟攔截器是同一張卡的兩半，方向相反：
 //
 //   攔截器    危險的指令一定要被擋下來
 //   白名單    安全的指令一定不能再問
-//
-// 結構檢查只數得出「settings.json 裡有 39 條規則」——那證明得了檔案寫對，證明不了
-// Claude Code 真的照著做。所以這裡開一個真的 claude session 叫它跑幾條指令。
 //
 // 題目不是「把 39 條都跑一遍」。規則字串對不對是結構問題（checkAllowlist 已經逐條
 // 比對過了）；這裡要證明的是「它真的讀了那個檔並照著做」，而那是一個開關。該覆蓋的
@@ -85,39 +129,18 @@ async function openClaudeVerify(
 // WebSearch 那條刻意不驗（舊版 Reed 指定）：它在部分地區用不了，驗它等於在那些地區
 // 製造一個永遠紅的燈。會改東西的（mkdir / git commit）與機器上不一定有的（jq / tree）
 // 也不跑——它們失敗的原因跟白名單無關，而學生只會看到一個紅燈。
-async function openAllowlistVerify(signal?: AbortSignal): Promise<{ completed: boolean }> {
-  const stamp = `${process.pid}-${counter()}`;
-  // 落在 tmpdir 是刻意的：那個目錄一定存在。要模型自己去建目錄的話，Windows 上
-  // New-Item 不在白名單裡（那 39 條全是 Bash(...)），第一步就跳提示卡死。
-  const resultFile = path.join(tmpdir(), `jr-verify-allowlist-${stamp}.txt`);
-  const launcher = writeAllowlistLauncher(stamp, resultFile);
-
-  const { cmd, args } = openCommand(launcher);
-  spawn(cmd, args, { detached: true, stdio: "ignore" }).unref();
-
-  // 「跑完」的定義是副產物裡出現那個 token，不是視窗關掉。
-  //
-  // ⚠️ token 代表的是「四步全部都沒被問」這個結論，不是「echo 跑過了」的副產物
-  // ——寫成後者的話只驗得到第一條，後面幾種形狀壞掉也一樣綠。
-  const completed = await waitUntil(
-    () => readIfExists(resultFile).includes(ALLOWLIST_TOKEN),
-    ALLOWLIST_TIMEOUT_MS,
-    signal,
-  );
-
-  rmSync(launcher, { force: true });
-  rmSync(resultFile, { force: true });
-
-  return { completed };
-}
-
+//
 // 兩個設計上的關鍵，改題目時不要順手拿掉：
 //
 // 一、「跳了提示就不要按允許」。少了它這題會變成假驗證：學生按了允許 → 指令照樣跑
 //     → 檔案裡照樣有 token → 通過，而白名單其實沒生效。
-// 二、第 3 步跑出錯誤也算跑過。這一題看的是有沒有被擋，不是指令成不成功。
-function allowlistPrompt(resultFile: string): string {
-  return (
+// 二、token 是「全部都沒被問」的結論，不是「echo 跑過了」的副產物。寫成後者的話只
+//     驗得到第一條，後面幾種形狀壞掉也一樣綠。
+const ALLOWLIST_CASE: ArtifactCase = {
+  id: "allowlist",
+  title: "驗證常用指令白名單",
+  watchFor: "看它跑那四件事，你不需要輸入任何東西。任何一步跳出「要不要允許」都不要按允許。",
+  prompt: (resultFile) =>
     "請依序做這四件事，一件都不要跳過：" +
     `1) 執行 echo ${ALLOWLIST_TOKEN}　2) 執行 pwd　3) 執行 git status　` +
     "4) 用 WebFetch 讀 https://raw.githubusercontent.com/museReed/jr-setup-ui/main/README.md。" +
@@ -125,8 +148,34 @@ function allowlistPrompt(resultFile: string): string {
     "如果其中任何一步跳出要你允許的提示，不要按允許，" +
     `把那一步的編號與提示原文寫進 ${resultFile} 就停下來。` +
     `四步全部都沒有跳提示的話，把 ${ALLOWLIST_TOKEN} 寫進 ${resultFile}。` +
-    "（那個檔案的資料夾已經存在，直接寫檔就好，不要先建立目錄。）"
+    RESULT_DIR_NOTE,
+  keyword: ALLOWLIST_TOKEN,
+  timeoutMs: 240_000,
+};
+
+async function openArtifactVerify(
+  spec: ArtifactCase,
+  signal?: AbortSignal,
+): Promise<{ completed: boolean }> {
+  const stamp = `${process.pid}-${counter()}`;
+  // 落在 tmpdir 是刻意的：那個目錄一定存在（見 RESULT_DIR_NOTE）。
+  const resultFile = path.join(tmpdir(), `jr-verify-${spec.id}-${stamp}.txt`);
+  const launcher = writeAskClaudeLauncher(spec, stamp, resultFile);
+
+  const { cmd, args } = openCommand(launcher);
+  spawn(cmd, args, { detached: true, stdio: "ignore" }).unref();
+
+  // 「跑完」的定義是副產物裡出現預期的字，不是視窗被關掉。
+  const completed = await waitUntil(
+    () => readIfExists(resultFile).includes(spec.keyword),
+    spec.timeoutMs,
+    signal,
   );
+
+  rmSync(launcher, { force: true });
+  rmSync(resultFile, { force: true });
+
+  return { completed };
 }
 
 // ⚠️ 不要把指令直接塞進 open / wt.exe 的參數：那一串會經過兩三層 shell，引號規則
@@ -177,17 +226,21 @@ function writeLauncher(stamp: string, marker: string): string {
 // 的白名單決定——也就是這一題真正要量的那件事，沒有被這個旗標蓋掉。
 const CLAUDE_ACCEPT_EDITS = "--permission-mode acceptEdits";
 
-// 白名單那題的視窗：把提問交給 claude，人只要看著。
+// 把提問交給 claude 的那種視窗：人只要看著。
 //
 // ⚠️ 提問裡不要出現單引號——它會被包在 '...' 裡送給 shell，一個單引號就把整句剖開。
-function writeAllowlistLauncher(stamp: string, resultFile: string): string {
-  const prompt = allowlistPrompt(resultFile);
-  const watch = "看它跑那四件事，你不需要輸入任何東西。任何一步跳出「要不要允許」都不要按允許。";
+function writeAskClaudeLauncher(
+  spec: ArtifactCase,
+  stamp: string,
+  resultFile: string,
+): string {
+  const prompt = spec.prompt(resultFile);
+  const watch = spec.watchFor;
 
   if (process.platform === "win32") {
-    const file = path.join(tmpdir(), `jr-verify-allowlist-${stamp}.ps1`);
+    const file = path.join(tmpdir(), `jr-verify-${spec.id}-${stamp}.ps1`);
     const ps = [
-      'Write-Host "===== 驗證常用指令白名單 ====="',
+      `Write-Host "===== ${spec.title} ====="`,
       `Write-Host "${watch}"`,
       `claude ${CLAUDE_ACCEPT_EDITS} '${prompt}'`,
     ].join("\n");
@@ -197,9 +250,9 @@ function writeAllowlistLauncher(stamp: string, resultFile: string): string {
     return file;
   }
 
-  const file = path.join(tmpdir(), `jr-verify-allowlist-${stamp}.command`);
+  const file = path.join(tmpdir(), `jr-verify-${spec.id}-${stamp}.command`);
   const body = [
-    'echo "===== 驗證常用指令白名單 ====="',
+    `echo "===== ${spec.title} ====="`,
     'echo ""',
     `echo "${watch}"`,
     'echo ""',

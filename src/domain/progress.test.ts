@@ -95,12 +95,18 @@ function progress(
   };
 }
 
-// 合併卡：兩份都裝好才輪到驗證。順序反了驗的是「只裝了一半」的狀態，而那種驗證
-// 多半會過（半套設定通常不會報錯，只是不完整），於是綠燈長在沒做完的東西上。
-test("合併卡：其中一份還沒裝，就還不能驗證", () => {
-  const half = progress({ hook: "ok", allowlist: "missing" }, {});
-  const both = progress({ hook: "ok", allowlist: "ok" }, {});
+// 沒裝的東西沒得驗——但只管它自己那一格。
+test("這一格還沒裝就不能驗，裝好了就能", () => {
+  const [hook] = guardrailsCard.checks;
 
-  assert.equal(canVerifyYet(guardrailsCard, half), false);
-  assert.equal(canVerifyYet(guardrailsCard, both), true);
+  assert.equal(canVerifyYet(hook!, progress({ hook: "missing" }, {})), false);
+  assert.equal(canVerifyYet(hook!, progress({ hook: "ok" }, {})), true);
+});
+
+// 這題守的是「hook 明明裝好了卻因為 allowlist 沒裝而按不動驗證」那個連坐。
+test("隔壁格還沒裝，不影響這一格能不能驗", () => {
+  const [hook] = guardrailsCard.checks;
+  const half = progress({ hook: "ok", allowlist: "missing" }, {});
+
+  assert.equal(canVerifyYet(hook!, half), true);
 });
