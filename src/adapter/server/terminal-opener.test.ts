@@ -11,6 +11,22 @@ import { createTerminalOpener, writeLauncher } from "./terminal-opener.ts";
 // 這一題守的是**整類**錯誤，不是單一個 bug：任何一處 spawn 忘了給 env，開出去的視窗
 // 就繼承伺服器啟動當下那份 PATH——Windows 上剛裝好的 claude 在那個視窗裡叫不動，而
 // 網頁那一格永遠等不到記號檔（VM 實測 #20）。
+// 同樣是守整類：清理暫存檔失敗過一次就把整個伺服器帶走（Windows 的 EPERM，#24），
+// 而那條路是 async controller，沒人接就是行程結束、學生按什麼都沒反應。
+test("清理暫存檔一律走 best-effort 的 removeQuietly，沒有裸的 rmSync", () => {
+  const source = readFileSync(
+    fileURLToPath(new URL("./terminal-opener.ts", import.meta.url)),
+    "utf8",
+  );
+  // 定義自己那一行不算。
+  const bare = source
+    .split("\n")
+    .filter((line) => /(?<!function )\brmSync\(/.test(line))
+    .filter((line) => !line.includes("maxRetries"));
+
+  assert.deepEqual(bare, [], `這些 rmSync 沒有走 removeQuietly：\n${bare.join("\n")}`);
+});
+
 test("開視窗的每一次 spawn 都給了現算的環境變數，沒有人吃繼承的", () => {
   const source = readFileSync(
     fileURLToPath(new URL("./terminal-opener.ts", import.meta.url)),

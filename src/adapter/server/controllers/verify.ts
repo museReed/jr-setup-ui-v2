@@ -71,7 +71,8 @@ export async function startVerify(
 
   void (capability.via === "terminal"
     ? runTerminalVerify(ctx, card, check.id, capability.action)
-    : runAutoVerify(ctx, check.id, capability.action));
+    : runAutoVerify(ctx, check.id, capability.action)
+  ).catch((error: unknown) => reportCrash(ctx, check.id, error));
 }
 
 function locate(
@@ -151,6 +152,17 @@ async function runTerminalVerify(
   ctx.store.markVerified(checkId, status === "ok");
   ctx.bus.publish({ type: "state", progress: ctx.store.wire() });
   ctx.bus.publish({ type: "run-done", runId: checkId, success: status === "ok" });
+}
+
+// ⚠️ 這一條路是 fire-and-forget（回應早就送出去了），所以它丟出來的任何例外都是
+// unhandled rejection——Node 會直接把伺服器結束掉。學生看到的是「按了之後沒反應，
+// 而且從此每顆按鈕都沒用」，網頁卻還在（Windows VM 實測 #24：清暫存檔撞 EPERM）。
+//
+// 這裡把它變成一次失敗的結論：學生拿回按鈕，原因印在伺服器那個視窗。
+function reportCrash(ctx: ServerContext, checkId: string, error: unknown): void {
+  console.error(error);
+  say(ctx, checkId, K.run.failed, true);
+  ctx.bus.publish({ type: "run-done", runId: checkId, success: false });
 }
 
 // 我們自己的話送代號，不送翻好的字——伺服器不必知道使用者用哪個語言。

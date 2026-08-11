@@ -90,8 +90,8 @@ async function openCliVerify(
     fake.set(`${cli}-auth`, "ok");
   }
 
-  rmSync(launcher, { force: true });
-  rmSync(marker, { force: true });
+  removeQuietly(launcher);
+  removeQuietly(marker);
 
   return { completed };
 }
@@ -194,8 +194,8 @@ async function openArtifactVerify(
     signal,
   );
 
-  rmSync(launcher, { force: true });
-  rmSync(resultFile, { force: true });
+  removeQuietly(launcher);
+  removeQuietly(resultFile);
 
   return { completed };
 }
@@ -320,6 +320,23 @@ function writeFullscreenLauncher(
   writeFileSync(file, `#!/bin/zsh -i\ncommand claude${prompt}\n`);
   chmodSync(file, 0o755);
   return file;
+}
+
+// 刪暫存檔是收尾動作，失敗頂多在 Temp 留一個檔——絕不該讓學生的嚮導整個死掉。
+//
+// ⚠️ `force: true` 只吞「檔案不存在」，不吞 EPERM。而 Windows 上剛寫完或還被誰開著的
+// 檔案就是不准刪（Defender 掃描、powershell 還握著那支 launcher 都會）——實測到的樣子是
+// 伺服器行程當場結束，網頁上按什麼都沒反應（#24）。macOS 允許刪掉開著的檔案，所以
+// 只有 Windows 現形。
+//
+// maxRetries / retryDelay 是 Node 自己為了 Windows 的 EPERM/EBUSY 準備的；退無可退時
+// 就放著不管——下次開機 Temp 會自己清。
+function removeQuietly(file: string): void {
+  try {
+    rmSync(file, { force: true, maxRetries: 5, retryDelay: 100 });
+  } catch {
+    // 這裡刻意什麼都不做。留一個暫存檔沒有任何後果，而這條路上丟出去的例外沒有人接。
+  }
 }
 
 function readIfExists(file: string): string {
