@@ -11,7 +11,10 @@ export interface RunActionResult {
   readonly exitCode?: number;
 }
 
-export function startAction(action: string, runner: ProcessRunner): RunHandle {
+export function startAction(
+  action: string,
+  runner: ProcessRunner,
+): Promise<RunHandle> {
   return runner.start(action);
 }
 

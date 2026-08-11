@@ -13,7 +13,7 @@ test("collectAction 保持事件順序並回報 exit code", async () => {
   const clock = fakeClock([100, 101, 102]);
 
   const result = await collectAction(
-    startAction("install-claude", runner),
+    await startAction("install-claude", runner),
     clock,
   );
 
@@ -36,7 +36,7 @@ test("collectAction 逐筆往外送，不等跑完", async () => {
   const seen: string[] = [];
 
   const result = await collectAction(
-    startAction("install-claude", runner),
+    await startAction("install-claude", runner),
     fakeClock([1, 2]),
     (event) => seen.push(event.text),
   );
@@ -48,7 +48,7 @@ test("collectAction 逐筆往外送，不等跑完", async () => {
 test("runId 在事件開始流之前就拿得到", async () => {
   const runner = fakeRunner([]);
 
-  const handle = startAction("login-claude", runner);
+  const handle = await startAction("login-claude", runner);
   await runner.sendInput(handle.runId, "abc123\n");
 
   assert.deepEqual(runner.inputs, [{ runId: "run-1", text: "abc123\n" }]);
@@ -61,7 +61,7 @@ function fakeRunner(events: readonly RunEvent[]): ProcessRunner & {
 
   return {
     inputs,
-    start() {
+    async start() {
       return {
         runId: "run-1",
         events: (async function* () {
