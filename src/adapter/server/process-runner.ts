@@ -9,6 +9,7 @@ import type {
 import { findAction } from "./actions.ts";
 import { installAllowlist, installHook } from "./config-install.ts";
 import type { FakeEnv } from "./fake-env.ts";
+import { isProgressNoise } from "./output-noise.ts";
 import { spawnEnv } from "./spawn-env.ts";
 
 // 假環境下每個 action 演什麼，以及演完把哪一格改成什麼。真的去裝一次 CLI 要好幾
@@ -131,16 +132,9 @@ function spawnReal(
 
   const queue = createQueue<RunEvent>();
 
-  child.stdout?.on("data", (chunk: Buffer) => {
-    for (const line of splitLines(chunk)) {
-      queue.push({ kind: "line", text: line, at: 0 });
-    }
-  });
-  child.stderr?.on("data", (chunk: Buffer) => {
-    for (const line of splitLines(chunk)) {
-      queue.push({ kind: "line", text: line, at: 0 });
-    }
-  });
+  // stderr 也要過濾，不是只有 stdout：brew 的下載進度就寫在那邊。
+  child.stdout?.on("data", (chunk: Buffer) => pushLines(queue, chunk));
+  child.stderr?.on("data", (chunk: Buffer) => pushLines(queue, chunk));
 
   // 指令根本不存在（沒裝 npm、PATH 不對）走的是 error 而不是 exit。前一代漏收這條，
   // 於是最常見的那類失敗在卡片上只顯示「exit code: null」。
@@ -182,6 +176,19 @@ async function* playFake(
 
   fake.set(script.then[0], script.then[1]);
   yield { kind: "exit", text: "", at: 0, exitCode: 0 };
+}
+
+// 進度動畫連事件都不發：它的下場只有兩個，畫面上幾百行垃圾，或把真正的錯誤訊息
+// 埋掉（見 output-noise.ts）。
+export function pushLines(
+  queue: { push(event: RunEvent): void },
+  chunk: Buffer,
+): void {
+  for (const line of splitLines(chunk)) {
+    if (!isProgressNoise(line)) {
+      queue.push({ kind: "line", text: line, at: 0 });
+    }
+  }
 }
 
 function splitLines(chunk: Buffer): string[] {
