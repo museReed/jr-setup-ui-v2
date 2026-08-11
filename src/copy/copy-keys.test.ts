@@ -5,7 +5,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { K } from "../domain/copy-keys.ts";
-import { FULLSCREEN_PROOF } from "../domain/catalog.ts";
+import { FULLSCREEN_PROOF } from "../domain/cards/claude-code.ts";
 import { FULLSCREEN_PROMPT } from "../adapter/server/terminal-opener.ts";
 import { en } from "./en.ts";
 import { zhCN } from "./zh-CN.ts";

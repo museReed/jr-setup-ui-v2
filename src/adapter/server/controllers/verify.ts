@@ -11,8 +11,9 @@ import { verifyHookBehavior } from "../verify-hook.ts";
 
 // 自動驗證：程式自己問得到答案的那幾題。
 //
-// ⚠️ 目前 catalog 裡沒有任何一格宣告 via: "auto"——攔截器那格本來是，後來改成開真的
-// claude（理由見 catalog.ts）。這張表留著是因為 verifyHookBehavior 仍然有用：它答的是
+// ⚠️ 目前 src/domain/cards/ 裡沒有任何一格宣告 via: "auto"——攔截器那格本來是，
+// 後來改成開真的 claude（理由見 src/domain/cards/guardrails.ts）。這張表留著是因為
+// verifyHookBehavior 仍然有用：它答的是
 // 「腳本自己會不會擋」，`scripts/try-guardrails.mjs` 靠它做不花錢的自檢。
 const AUTO_VERIFIERS: Readonly<
   Record<string, () => Promise<{ passed: boolean; lines: readonly string[] }>>

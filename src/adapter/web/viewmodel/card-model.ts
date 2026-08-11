@@ -49,6 +49,7 @@ export interface AppState {
   // 這台機器是什麼。教學內容的平台過濾靠它（見 walkthrough-model）。
   readonly platform: Platform;
   readonly progress: ProgressState;
+  readonly proofValues: Readonly<Record<string, string>>;
   readonly terminal: readonly TerminalEntry[];
   readonly runningAction: string | null;
   // 這一輪的把手。取消要指名取消誰——驗證用的是那一格的 id，跑指令用的是伺服器
@@ -85,8 +86,8 @@ export interface ChecklistRow {
   // 這一格自己的按鈕。掛在格內而不是卡片底下——學生才不用自己配對哪顆帶他做哪一格。
   readonly buttons: readonly ButtonModel[];
   readonly stepId: string | undefined;
-  // 有 expected 才畫貼回輸入框；勾選結果仍寫進 eyeChecked。
-  readonly expected: string | undefined;
+  // 有 proofValue 才畫貼回輸入框；勾選結果仍寫進 eyeChecked。
+  readonly proofValue: string | undefined;
 }
 
 export interface ChecklistStep {
@@ -263,7 +264,7 @@ function checklistModel(state: AppState): ChecklistModel {
       walkthroughId: undefined,
       buttons: rowButtons(check, state),
       stepId: undefined,
-      expected: undefined,
+      proofValue: undefined,
     };
   });
 
@@ -280,7 +281,7 @@ function checklistModel(state: AppState): ChecklistModel {
           walkthroughId: capability.walkthrough,
           buttons: [],
           stepId: capability.stepId,
-          expected: undefined,
+          proofValue: undefined,
         },
       ];
     }
@@ -297,7 +298,7 @@ function checklistModel(state: AppState): ChecklistModel {
           walkthroughId: capability.walkthrough,
           buttons: [],
           stepId: capability.stepId,
-          expected: capability.expected,
+          proofValue: state.proofValues[capability.id] ?? "",
         },
       ];
     }

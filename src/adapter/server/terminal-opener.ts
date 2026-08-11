@@ -3,7 +3,7 @@ import { chmodSync, existsSync, readFileSync, rmSync, writeFileSync } from "node
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { FULLSCREEN_PROOF } from "../../domain/catalog.ts";
+import { FULLSCREEN_PROOF } from "../../domain/cards/claude-code.ts";
 import type { TerminalOpener } from "../../usecase/ports.ts";
 import type { FakeEnv } from "./fake-env.ts";
 
