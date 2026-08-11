@@ -9,7 +9,7 @@ export type Capability =
   // 地方就要維護一張 action→訊息 的對照表，而那張表遲早會跟能力清單對不上。
   | { kind: "install"; action: string; startKey: MessageKey }
   | { kind: "verify"; via: "auto" | "terminal"; action: string }
-  | { kind: "login"; action: string; startKey: MessageKey }
+  | { kind: "login"; action: string; startKey: MessageKey; linkKey?: MessageKey }
   | {
       kind: "manual-step";
       id: string;
@@ -62,6 +62,7 @@ export interface Card {
   id: CardId;
   sectionId: SectionId;
   labelKey: MessageKey;
+  logoId: string;
   checks: CardCheck[];
   // 卡片級的能力：整張卡重新檢查、以及沒有對應某一格的人工勾選。
   capabilities: Capability[];

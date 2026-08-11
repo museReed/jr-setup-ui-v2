@@ -25,6 +25,8 @@ const ALLOWLIST_TOKEN = "allowlist-ok-9d4b71";
 export const FULLSCREEN_PROMPT =
   `請原樣印出這一行，不要加任何說明：${FULLSCREEN_PROOF}`;
 
+type VerifyCli = "claude" | "codex";
+
 // verify 要等一個結論；這兩顆只是幫學生把工作視窗開起來。沿用 verify 的等待會讓
 // 學生留在視窗裡操作時，網頁上每顆按鈕灰掉三分鐘。
 export function openWindow(action: string): void {
@@ -47,8 +49,12 @@ export function createTerminalOpener(fake: FakeEnv | null): TerminalOpener {
         return { completed: false };
       }
 
-      if (action === "verify-claude") {
-        return openClaudeVerify(fake, signal);
+      if (action === "verify-claude" || action === "verify-codex") {
+        return openCliVerify(
+          action === "verify-claude" ? "claude" : "codex",
+          fake,
+          signal,
+        );
       }
 
       if (action === "verify-allowlist") {
@@ -64,24 +70,25 @@ export function createTerminalOpener(fake: FakeEnv | null): TerminalOpener {
   };
 }
 
-async function openClaudeVerify(
+async function openCliVerify(
+  cli: VerifyCli,
   fake: FakeEnv | null,
   signal?: AbortSignal,
 ): Promise<{ completed: boolean }> {
   const stamp = `${process.pid}-${counter()}`;
   const marker = path.join(tmpdir(), `jr-verify-${stamp}.done`);
-  const launcher = writeLauncher(stamp, marker);
+  const launcher = writeLauncher(cli, stamp, marker);
 
   const { cmd, args } = openCommand(launcher);
   spawn(cmd, args, { detached: true, stdio: "ignore" }).unref();
 
   const completed = await waitUntil(() => existsSync(marker), MARKER_TIMEOUT_MS, signal);
 
-  // 假環境下沒有真的 claude 可跑，但畫面要能走完整條路：學生確實把視窗走完了，
-  // 就把那兩格推到 ok，讓重新探測拿得到新狀態。
+  // 假環境下沒有真的 CLI 可跑，但畫面要能走完整條路：學生確實把視窗走完了，
+  // 就把這張卡的兩格推到 ok，讓重新探測拿得到新狀態。
   if (completed && fake !== null) {
-    fake.set("claude", "ok");
-    fake.set("claude-auth", "ok");
+    fake.set(cli, "ok");
+    fake.set(`${cli}-auth`, "ok");
   }
 
   rmSync(launcher, { force: true });
@@ -197,22 +204,33 @@ async function openArtifactVerify(
 
 // ⚠️ 不要把指令直接塞進 open / wt.exe 的參數：那一串會經過兩三層 shell，引號規則
 // 各不相同，中文一過去就散了。寫成檔案之後只剩「執行這個檔」一件事。
-function writeLauncher(stamp: string, marker: string): string {
+export function writeLauncher(
+  cli: VerifyCli,
+  stamp: string,
+  marker: string,
+  platform: NodeJS.Platform = process.platform,
+): string {
+  const title = cli === "claude" ? "Claude Code" : "Codex CLI";
   const body = [
-    'echo "===== 驗證 Claude Code ====="',
+    `echo "===== 驗證 ${title} ====="`,
     'echo ""',
-    "claude --version",
+    // ⚠️ 這裡**不要**加 `command`。這一格問的是「在你自己的終端機裡打得動嗎」，
+    // 而 shell 設定檔裡一個同名包裝函式就能把裝好的執行檔整個蓋掉——`command`
+    // 剛好會繞過它，把這一格唯一抓得到的失敗變成看不見。
+    // （writeAskClaudeLauncher 那邊要 `command` 是另一回事：那裡怕的是包裝函式
+    // 把我們加的旗標吃掉。）
+    `${cli} --version`,
     'echo ""',
     'echo "看到版本號就表示 CLI 真的跑得起來。"',
     'echo "確認完按 Enter 關掉這個視窗，網頁上那一格會跟著變綠。"',
     "read -r _",
   ];
 
-  if (process.platform === "win32") {
+  if (platform === "win32") {
     const file = path.join(tmpdir(), `jr-verify-${stamp}.ps1`);
     const ps = [
-      'Write-Host "===== 驗證 Claude Code ====="',
-      "claude --version",
+      `Write-Host "===== 驗證 ${title} ====="`,
+      `${cli} --version`,
       'Write-Host "確認完按 Enter 關掉這個視窗，網頁上那一格會跟著變綠。"',
       "Read-Host",
       `Set-Content -LiteralPath '${marker}' -Value 'done'`,

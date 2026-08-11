@@ -171,6 +171,7 @@ export function activeCard(state: AppState): Card {
       id: "",
       sectionId: "",
       labelKey: K.card.checklistTitle,
+      logoId: "",
       checks: [],
       capabilities: [],
     }
@@ -184,6 +185,9 @@ export function cardModel(state: AppState): CardViewModel {
   const display = cardDisplayState(card, progress);
   const checklist = checklistModel(state);
   const advance = canAdvance(card, progress);
+  const login = card.checks
+    .map((check) => findCapability(check, "login"))
+    .find((capability) => capability !== undefined);
 
   const badge = BADGES[display];
 
@@ -191,7 +195,7 @@ export function cardModel(state: AppState): CardViewModel {
     title: t(card.labelKey),
     position: { index: state.activeIndex + 1, total: state.cards.length },
     hasNext: state.activeIndex + 1 < state.cards.length,
-    logoId: "logo-claude",
+    logoId: card.logoId,
     display,
     badge: { text: t(badge.key), tone: badge.tone },
     checklist,
@@ -225,7 +229,7 @@ export function cardModel(state: AppState): CardViewModel {
     prompt: state.runningAcceptsInput
       ? {
           submitLabel: t(K.action.submitCode),
-          link: findAuthLink(state.terminal, t(K.action.openLink)),
+          link: findAuthLink(state.terminal, t(login?.linkKey ?? K.action.openLink)),
         }
       : null,
     canAdvance: advance,
@@ -412,7 +416,11 @@ function findAuthLink(
 ): { href: string; label: string } | null {
   const urls = entries
     .filter((entry) => entry.source === "output")
-    .flatMap((entry) => entry.text.match(/https?:\/\/\S+/g) ?? []);
+    .flatMap(
+      (entry) =>
+        entry.text.replace(/\u001b\[[0-9;]*m/g, "").match(/https?:\/\/\S+/g) ?? [],
+    )
+    .map((url) => url.replace(/[.,)]+$/, ""));
   const last = urls.at(-1);
 
   return last === undefined ? null : { href: last, label };

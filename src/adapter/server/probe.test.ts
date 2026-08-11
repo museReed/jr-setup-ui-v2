@@ -1,5 +1,12 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync } from "node:fs";
+import {
+  chmodSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -17,7 +24,22 @@ const MATERIALS = path.resolve(
 const dir = mkdtempSync(path.join(tmpdir(), "jr-probe-"));
 process.env.JR_CLAUDE_DIR = dir;
 
-after(() => rmSync(dir, { recursive: true, force: true }));
+const originalPath = process.env.PATH;
+const bin = path.join(dir, "bin");
+const codexLog = path.join(dir, "codex-args.txt");
+const codex = path.join(bin, "codex");
+mkdirSync(bin);
+writeFileSync(
+  codex,
+  `#!/bin/sh\nprintf '%s\\n' "$*" >> '${codexLog}'\nexit 0\n`,
+);
+chmodSync(codex, 0o755);
+process.env.PATH = `${bin}${path.delimiter}${originalPath ?? ""}`;
+
+after(() => {
+  process.env.PATH = originalPath;
+  rmSync(dir, { recursive: true, force: true });
+});
 
 async function drain(events: AsyncIterable<unknown>): Promise<void> {
   for await (const _ of events) {
@@ -41,4 +63,15 @@ test("認不得的格仍然是 missing，不是變成 undefined 漏出去", asyn
   const probe = createEnvProbe(createFakeEnv("missing"), MATERIALS);
 
   assert.equal(await probe.probe("nonesuch"), "missing");
+});
+
+test("Codex CLI 與登入探測分別執行 codex --version 和 codex login status", async () => {
+  const probe = createEnvProbe(null, MATERIALS);
+
+  assert.equal(await probe.probe("codex"), "ok");
+  assert.equal(await probe.probe("codex-auth"), "ok");
+  assert.deepEqual(readFileSync(codexLog, "utf8").trim().split("\n"), [
+    "--version",
+    "login status",
+  ]);
 });

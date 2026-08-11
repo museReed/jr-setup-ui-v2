@@ -13,6 +13,7 @@ export const guardrailsCard: Card = {
   id: "guardrails",
   sectionId: "rules",
   labelKey: K.card.guardrails,
+  logoId: "logo-claude",
   checks: [
     {
       id: "hook",

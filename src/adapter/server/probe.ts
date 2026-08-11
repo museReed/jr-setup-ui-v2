@@ -10,6 +10,8 @@ import type { FakeEnv } from "./fake-env.ts";
 const PROBES: Readonly<Record<CheckId, { cmd: string; args: string[] }>> = {
   claude: { cmd: "claude", args: ["--version"] },
   "claude-auth": { cmd: "claude", args: ["auth", "status"] },
+  codex: { cmd: "codex", args: ["--version"] },
+  "codex-auth": { cmd: "codex", args: ["login", "status"] },
 };
 
 // 設定檔類的格子不是「有沒有這個指令」，而是「檔案內容對不對、註冊上去沒有」。

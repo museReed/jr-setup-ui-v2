@@ -25,6 +25,8 @@ export function createFakeEnv(raw: string | undefined): FakeEnv | null {
       ? [
           ["claude", "missing"],
           ["claude-auth", "missing"],
+          ["codex", "missing"],
+          ["codex-auth", "missing"],
         ]
       : parsePairs(raw),
   );

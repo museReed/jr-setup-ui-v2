@@ -11,6 +11,8 @@ export const K = {
   check: {
     claude: "check.claude",
     claudeAuth: "check.claude-auth",
+    codex: "check.codex",
+    codexAuth: "check.codex-auth",
     hook: "check.hook",
     allowlist: "check.allowlist",
   },
@@ -53,11 +55,13 @@ export const K = {
     cancel: "action.cancel",
     submitCode: "action.submit-code",
     openLink: "action.open-link",
+    openCodexLink: "action.open-codex-link",
   },
   card: {
     // 卡片的名字與格子的名字是兩件事：這張卡叫「Claude Code」，它第一格叫
     // 「Claude Code CLI」。共用一個代號的話卡片標題會變成那一格的名字。
     claude: "card.claude",
+    codex: "card.codex",
     guardrails: "card.guardrails",
     checklistTitle: "card.checklist-title",
     advanceDone: "card.advance-done",
@@ -104,6 +108,8 @@ export const K = {
     failed: "run.failed",
     startInstallClaude: "run.start-install-claude",
     startLoginClaude: "run.start-login-claude",
+    startInstallCodex: "run.start-install-codex",
+    startLoginCodex: "run.start-login-codex",
     startInstallHook: "run.start-install-hook",
     startInstallAllowlist: "run.start-install-allowlist",
     verifyOpened: "run.verify-opened",

@@ -5,6 +5,8 @@ import {
   claudeCodeCard,
   FULLSCREEN_PROOF,
 } from "../../../domain/cards/claude-code.ts";
+import { codexCliCard } from "../../../domain/cards/codex-cli.ts";
+import { CARDS } from "../../../domain/cards/index.ts";
 import type { CheckId, CheckStatus } from "../../../domain/check.ts";
 import { K } from "../../../domain/copy-keys.ts";
 import type { ProgressState } from "../../../domain/progress.ts";
@@ -213,6 +215,62 @@ test("授權連結取輸出裡的最後一個網址，不是第一個", () => {
   });
 
   assert.equal(model.prompt?.link?.href, "https://example.com/current");
+});
+
+test("授權網址被 ANSI 色碼包住時不會把 escape 序列或尾端標點放進 href", () => {
+  const model = cardModel({
+    ...appState({ claude: "ok" }, {}),
+    terminal: [
+      {
+        source: "output",
+        text: "請開啟 \u001b[36mhttps://auth.openai.com/authorize\u001b[0m.,)",
+        kind: "output",
+        run: 1,
+      },
+    ],
+    runningAcceptsInput: true,
+  });
+
+  assert.equal(model.prompt?.link?.href, "https://auth.openai.com/authorize");
+});
+
+test("Codex 卡使用 OpenAI logo，而 Claude 卡保留 Claude logo", () => {
+  const claude = cardModel(appState({ claude: "ok" }, {}));
+  const codex = cardModel({
+    ...appState({ codex: "ok" }, {}),
+    cards: [codexCliCard],
+  });
+
+  assert.equal(codex.logoId, "logo-openai");
+  assert.equal(claude.logoId, "logo-claude");
+});
+
+test("Codex 登入連結使用瀏覽器未開時的 OpenAI 備援文案", () => {
+  const model = cardModel({
+    ...appState({ codex: "ok", "codex-auth": "missing" }, {}),
+    cards: [codexCliCard],
+    terminal: [
+      {
+        source: "output",
+        text: "https://auth.openai.com/authorize",
+        kind: "output",
+        run: 1,
+      },
+    ],
+    runningAcceptsInput: true,
+  });
+
+  assert.equal(
+    model.prompt?.link?.label,
+    "瀏覽器沒開？點這裡開啟 OpenAI 授權頁",
+  );
+});
+
+test("Codex 卡排在 Claude Code 之後且 guardrails 之前", () => {
+  assert.deepEqual(
+    CARDS.map((card) => card.id),
+    ["claude", "codex", "guardrails"],
+  );
 });
 
 function appState(
