@@ -152,6 +152,42 @@ type: standard
 
 ---
 
+## 3.5 路徑判定（Windows 專用的小工具）
+
+Windows 上「這台機器現在走哪條路」有三個變數，**任一不同，結論就不能互相套用**：
+裝了 git 沒（決定 Bash 工具存不存在）、裝了 pwsh 沒（決定 PowerShell 那條用哪一版）、
+問題的用詞（會把模型帶去某一邊）。
+
+判定方式是問「只有某一個殼答得出來」的問題，一次一題：
+
+| 問模型 | 答案 | 代表 |
+|---|---|---|
+| `請執行：$PSVersionTable.PSVersion.ToString()` | `5.1.xxxxx` | 走 PowerShell，而且是內建的 5.1 |
+| | `7.x.x` | 走 PowerShell，而且叫到了 pwsh |
+| | 語法錯／找不到 | 走 **bash** |
+| `請執行：uname -s` | `MINGW64_NT-10.0` | Git Bash |
+| | 不是內部或外部命令 | 不是 bash |
+| `請執行：echo %COMSPEC%` | `C:\Windows\system32\cmd.exe` | **cmd**——別忘了第三種可能 |
+
+**免費的工具名偵測器**：叫它跑 `echo a; echo b`。hook 對所有工具都觸發，被擋時轉錄會直接印出
+`PreToolUse:Bash` 或 `PreToolUse:PowerShell`——那一行就是答案，不必推測。
+
+### 已經驗過的事實（2026-08-11，Windows 11 VM）
+
+| 觀察 | 結論 |
+|---|---|
+| 沒裝 git 時，指令一律被包成 PowerShell 執行 | **沒有 Git Bash 就沒有 Bash 工具**（Claude Code 啟動時偵測，找不到就記 `BashTool will be unavailable`）。它找的位置：`CLAUDE_CODE_GIT_BASH_PATH` → `C:\Program Files\Git\bin\bash.exe` → `(x86)` 版 → `where git` 往上兩層 |
+| 裝 pwsh 之前，錯誤訊息是 `Windows PowerShell 5.1` | 沒裝 7 時退回內建的 5.1 |
+| 裝 pwsh 之後，`$PSVersionTable` 回 `7.6.4` | **PowerShell 那條路裝了 7 就改叫 pwsh** |
+
+⚠️ **這三件事都不需要我們改程式**——判定走 JSON、白名單比對指令字串、題目用兩邊都成立的 `;`。
+如果哪天某一格「只有裝了某個東西才會過」，那就是設計退步了，不是環境的問題。
+
+### Codex 那邊還沒驗
+
+Codex 讀不到我們的 hook，所以沒有 `PreToolUse:` 那條捷徑，只能靠上面那三題的語言指紋。
+**第三種可能（cmd）不要漏**：真的是 cmd 的話，那 43 條 `PowerShell(...)` 規則對它一條都不管用。
+
 ## 4. 回報格式
 
 貼回來的東西要能判讀，所以：
