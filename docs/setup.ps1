@@ -71,8 +71,20 @@ if (Test-Path $extractDir) {
 
 Expand-Archive -Path $zipPath -DestinationPath $extractDir -Force
 
+# ⚠️ 先離開那個資料夾再刪。這支腳本最後會 Set-Location $appDir（為了直接跑 node），
+# 所以在同一個視窗重貼一次安裝指令時，這個行程就站在要被刪掉的目錄裡——Windows 不准
+# 刪掉行程的目前目錄，訊息是「because it is in use」（VM 實測）。macOS 不會，POSIX
+# 允許刪掉當前目錄。
+Set-Location $HOME
+
 if (Test-Path $appDir) {
-  Remove-Item -Recurse -Force $appDir
+  try {
+    Remove-Item -Recurse -Force -ErrorAction Stop $appDir
+  } catch {
+    # 另一個視窗還跑著舊的嚮導時，那個 node 行程也鎖著同一個目錄。PowerShell 的
+    # 原文看不出要去關哪個視窗，所以這裡自己講。
+    throw "刪不掉舊的嚮導（$appDir）。嚮導可能還在另一個視窗跑著——先關掉那個視窗，再貼一次這行指令。"
+  }
 }
 
 New-Item -ItemType Directory -Force -Path (Split-Path $appDir) | Out-Null
