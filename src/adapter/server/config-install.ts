@@ -23,6 +23,21 @@ export function hookCommand(target: string): string {
   return `node "${target.replaceAll("\\", "/")}"`;
 }
 
+// ⚠️ matcher 是 `*`，不是 `Bash`。
+//
+// 賭工具叫什麼名字就是賭一個我們沒驗過的字串：對不上的話整條 hook 不觸發，而且
+// **沒有任何訊息**——Windows VM 上 `/hooks` 顯示「1 hook configured」，指令卻從來
+// 沒被擋（#34）。那台的指令是被 PowerShell 包起來跑的，名字不能從 macOS 類推。
+//
+// 範圍改由腳本自己決定：它只在 `tool_input.command` 是字串時才動作，其他工具一律
+// 放行（#30）。代價是每次工具呼叫多一支毫秒級的 node 行程，換掉一個靜默失效的單點。
+export function hookRegistration(target: string): Record<string, unknown> {
+  return {
+    matcher: "*",
+    hooks: [{ type: "command", command: hookCommand(target) }],
+  };
+}
+
 export async function* installHook(
   materialsRoot: string,
 ): AsyncGenerator<RunEvent> {
@@ -37,7 +52,6 @@ export async function* installHook(
   const hooks = asRecord(settings["hooks"]);
   const preToolUse = Array.isArray(hooks["PreToolUse"]) ? hooks["PreToolUse"] : [];
 
-  const command = hookCommand(target);
   // ⚠️ 先把指到那支腳本的舊 hook 全部濾掉，再加新的——不是「已經有就跳過」。
   //
   // 跳過的話，一個**壞掉的**註冊會被當成好的：Windows VM 上就有一台卡在少了正斜線
@@ -45,7 +59,7 @@ export async function* installHook(
   const kept = preToolUse.filter(
     (group) => !JSON.stringify(group).includes(HOOK_FILE),
   );
-  kept.push({ matcher: "Bash", hooks: [{ type: "command", command }] });
+  kept.push(hookRegistration(target));
 
   hooks["PreToolUse"] = kept;
   settings["hooks"] = hooks;

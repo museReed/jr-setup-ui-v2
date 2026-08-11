@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 
 import type { CheckStatus } from "../../domain/check.ts";
-import { hookCommand } from "./config-install.ts";
+import { hookRegistration } from "./config-install.ts";
 import { hookPath, settingsPath } from "./paths.ts";
 
 // 設定檔類的檢查。
@@ -77,11 +77,14 @@ async function hookRegistered(): Promise<boolean> {
   // 正斜線轉換的舊指令——hook 一跑就 exit 1，而 PreToolUse 把 exit 1 當「出錯，放行」
   // （#26）。那種註冊在畫面上是綠的，實際什麼都沒擋。
   //
-  // 所以認的是**現在這一版會寫出來的那個指令**：對不上就算沒裝，學生按重新安裝就修好。
-  // 註冊的形狀在不同版本之間變過，逐層拆結構很脆——轉成字串找指令反而穩。
-  return JSON.stringify(settings["hooks"] ?? {}).includes(
-    JSON.stringify(hookCommand(hookPath())).slice(1, -1),
-  );
+  // 所以認的是**現在這一版會寫出來的那一整條註冊**（含 matcher）：對不上就算沒裝，
+  // 學生按重新安裝就修好。matcher 也要比——它從 `Bash` 改成 `*` 過一次，而舊的那個
+  // 值在 Windows 上等於整條不觸發（#34）。
+  //
+  // 註冊的形狀在不同版本之間變過，逐層拆結構很脆——兩邊都由同一個函式序列化，
+  // 比字串反而穩。
+  const wanted = JSON.stringify(hookRegistration(hookPath()));
+  return JSON.stringify(settings["hooks"] ?? {}).includes(wanted);
 }
 
 async function readText(file: string): Promise<string | null> {
