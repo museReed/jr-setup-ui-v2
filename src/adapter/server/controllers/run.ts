@@ -32,7 +32,7 @@ export async function startRun(
     return;
   }
 
-  const handle = startAction(action, ctx.runner);
+  const handle = await startAction(action, ctx.runner);
   // runId 先回去，事件之後從 SSE 流過來——等跑完才回應的話，安裝那幾分鐘裡
   // 網頁什麼都拿不到。
   //

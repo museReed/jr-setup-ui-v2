@@ -19,7 +19,8 @@ export interface RunHandle {
 }
 
 export interface ProcessRunner {
-  start(action: string): RunHandle;
+  // 非同步是因為 Windows 要先去讀一次登錄檔的 PATH（見 adapter 的 spawn-env）。
+  start(action: string): Promise<RunHandle>;
   sendInput(runId: string, text: string): Promise<void>;
   cancel(runId: string): Promise<void>;
 }

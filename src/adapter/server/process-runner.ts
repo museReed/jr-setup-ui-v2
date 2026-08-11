@@ -9,6 +9,7 @@ import type {
 import { findAction } from "./actions.ts";
 import { installAllowlist, installHook } from "./config-install.ts";
 import type { FakeEnv } from "./fake-env.ts";
+import { spawnEnv } from "./spawn-env.ts";
 
 // 假環境下每個 action 演什麼，以及演完把哪一格改成什麼。真的去裝一次 CLI 要好幾
 // 分鐘，而我們現在要驗的是「畫面會不會跟著動」。
@@ -80,7 +81,7 @@ export function createProcessRunner(
   let counter = 0;
 
   return {
-    start(action) {
+    async start(action) {
       counter += 1;
       const runId = `run-${counter}`;
 
@@ -89,7 +90,9 @@ export function createProcessRunner(
       }
 
       return fake === null
-        ? spawnReal(runId, action, children)
+        ? // ⚠️ 現算的 PATH，不是繼承的：登入那條要叫剛裝好的 claude / codex，
+          // 而它們在 ~/.local/bin——嚮導這個行程的 PATH 沒有那個目錄（見 spawn-env）。
+          spawnReal(runId, action, children, await spawnEnv())
         : { runId, events: playFake(action, fake) };
     },
 
@@ -112,6 +115,7 @@ function spawnReal(
   runId: string,
   action: string,
   children: Map<string, ChildProcess>,
+  baseEnv: NodeJS.ProcessEnv,
 ): RunHandle {
   const spec = findAction(action);
 
@@ -120,7 +124,7 @@ function spawnReal(
   }
 
   const child = spawn(spec.cmd, [...spec.args], {
-    env: { ...process.env, ...spec.env },
+    env: { ...baseEnv, ...spec.env },
     stdio: [spec.acceptsInput ? "pipe" : "ignore", "pipe", "pipe"],
   });
   children.set(runId, child);
