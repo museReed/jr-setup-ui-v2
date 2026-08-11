@@ -6,6 +6,7 @@ import path from "node:path";
 import { FULLSCREEN_PROOF } from "../../domain/cards/claude-code.ts";
 import type { TerminalOpener } from "../../usecase/ports.ts";
 import type { FakeEnv } from "./fake-env.ts";
+import { spawnEnv } from "./spawn-env.ts";
 
 // 開真的終端視窗，等它跑完才 resolve。
 //
@@ -29,15 +30,14 @@ type VerifyCli = "claude" | "codex";
 
 // verify 要等一個結論；這兩顆只是幫學生把工作視窗開起來。沿用 verify 的等待會讓
 // 學生留在視窗裡操作時，網頁上每顆按鈕灰掉三分鐘。
-export function openWindow(action: string): void {
+export async function openWindow(action: string): Promise<void> {
   if (action !== "fullscreen-open" && action !== "fullscreen-proof") {
     throw new Error(`不認得的開窗動作：${action}`);
   }
 
   const stamp = `${process.pid}-${counter()}`;
   const launcher = writeFullscreenLauncher(action, stamp);
-  const { cmd, args } = openCommand(launcher);
-  spawn(cmd, args, { detached: true, stdio: "ignore" }).unref();
+  await openDetached(launcher);
 }
 
 export function createTerminalOpener(fake: FakeEnv | null): TerminalOpener {
@@ -79,8 +79,7 @@ async function openCliVerify(
   const marker = path.join(tmpdir(), `jr-verify-${stamp}.done`);
   const launcher = writeLauncher(cli, stamp, marker);
 
-  const { cmd, args } = openCommand(launcher);
-  spawn(cmd, args, { detached: true, stdio: "ignore" }).unref();
+  await openDetached(launcher);
 
   const completed = await waitUntil(() => existsSync(marker), MARKER_TIMEOUT_MS, signal);
 
@@ -186,8 +185,7 @@ async function openArtifactVerify(
   const resultFile = path.join(tmpdir(), `jr-verify-${spec.id}-${stamp}.txt`);
   const launcher = writeAskClaudeLauncher(spec, stamp, resultFile);
 
-  const { cmd, args } = openCommand(launcher);
-  spawn(cmd, args, { detached: true, stdio: "ignore" }).unref();
+  await openDetached(launcher);
 
   // 「跑完」的定義是副產物裡出現預期的字，不是視窗被關掉。
   const completed = await waitUntil(
@@ -330,6 +328,26 @@ function readIfExists(file: string): string {
   } catch {
     return "";
   }
+}
+
+// 開視窗也要吃現算的 PATH。
+//
+// ⚠️ 開出去的視窗**繼承的是伺服器啟動當下那份環境**，不會自己去讀登錄檔。claude 的
+// Windows 安裝器把 claude.exe 放在 %USERPROFILE%\.local\bin 而不寫永久 PATH（我們的
+// 安裝動作補寫了登錄檔，但那是伺服器啟動之後的事）——於是視窗裡是
+// 「claude is not recognized」，而網頁上那一格永遠等不到記號檔（Windows VM 實測 #20）。
+//
+// macOS 沒現形是因為那支 launcher 是 `#!/bin/zsh -i`，會重讀 .zshrc 自己救回來。
+//
+// 這不是繞過學生的環境：登錄檔的 User Path 正是他自己開新視窗時讀到的東西，我們補的
+// 是行程快照的落後。
+async function openDetached(launcher: string): Promise<void> {
+  const { cmd, args } = openCommand(launcher);
+  spawn(cmd, args, {
+    detached: true,
+    stdio: "ignore",
+    env: await spawnEnv(),
+  }).unref();
 }
 
 function openCommand(launcher: string): { cmd: string; args: string[] } {
