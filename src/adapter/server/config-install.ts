@@ -10,6 +10,19 @@ import { claudeDir, hookPath, settingsPath } from "./paths.ts";
 //   1. 動 settings.json 之前先備份（.bak.時間戳）——它可能有學生自己的內容
 //   2. 只加我們那幾條，不整份覆蓋
 //   3. 每一步都吐一行出來，學生看得到我們動了哪個檔
+export const HOOK_FILE = "block-chained-bash.js";
+
+// PreToolUse 的指令是**丟給 bash 跑的**，Windows 路徑不處理就會被吃掉：`C:\Users\Reed`
+// 裡的 `\U` `\R` 是 bash 的跳脫序列，路徑變成 `C:UsersReed`，node 找不到檔案而以 exit 1
+// 結束——而 PreToolUse 只認 exit 2 是「擋下」，**exit 1 是「hook 出錯，放行」**。於是
+// hook 看起來裝好了、實際上什麼都沒擋（舊版 VM 實測 `echo a && echo b` 直接通過；v2 只
+// 抄了引號那一半，Windows VM 又重演一次，#26）。
+//
+// 兩件都要做：反斜線換正斜線（Windows 吃正斜線），引號則讓路徑帶空白時不會斷成兩段。
+export function hookCommand(target: string): string {
+  return `node "${target.replaceAll("\\", "/")}"`;
+}
+
 export async function* installHook(
   materialsRoot: string,
 ): AsyncGenerator<RunEvent> {
@@ -24,23 +37,20 @@ export async function* installHook(
   const hooks = asRecord(settings["hooks"]);
   const preToolUse = Array.isArray(hooks["PreToolUse"]) ? hooks["PreToolUse"] : [];
 
-  // 路徑一定要有引號：Windows 上 `C:\\Users\\Reed` 的 \\U \\R 會被 bash 當跳脫吃掉，
-  // node 找不到檔案 → exit 1 → PreToolUse 把 exit 1 當「hook 出錯，放行」。
-  // 前一代就是這樣「裝好了、綠燈、就是不擋」。
-  const command = `node "${target}"`;
-  const already = JSON.stringify(preToolUse).includes("block-chained-bash.js");
+  const command = hookCommand(target);
+  // ⚠️ 先把指到那支腳本的舊 hook 全部濾掉，再加新的——不是「已經有就跳過」。
+  //
+  // 跳過的話，一個**壞掉的**註冊會被當成好的：Windows VM 上就有一台卡在少了正斜線
+  // 轉換的舊指令，改好程式碼之後它仍然是壞的，而學生按重新安裝也修不好（#26）。
+  const kept = preToolUse.filter(
+    (group) => !JSON.stringify(group).includes(HOOK_FILE),
+  );
+  kept.push({ matcher: "Bash", hooks: [{ type: "command", command }] });
 
-  if (!already) {
-    preToolUse.push({
-      matcher: "Bash",
-      hooks: [{ type: "command", command }],
-    });
-  }
-
-  hooks["PreToolUse"] = preToolUse;
+  hooks["PreToolUse"] = kept;
   settings["hooks"] = hooks;
   await saveSettings(settings);
-  yield line(already ? "註冊已存在，沒有重複加入" : `註冊到 ${settingsPath()}`);
+  yield line(`註冊到 ${settingsPath()}`);
   yield done();
 }
 
