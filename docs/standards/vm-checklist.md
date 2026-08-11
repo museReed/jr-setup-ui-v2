@@ -183,10 +183,32 @@ Windows 上「這台機器現在走哪條路」有三個變數，**任一不同�
 ⚠️ **這三件事都不需要我們改程式**——判定走 JSON、白名單比對指令字串、題目用兩邊都成立的 `;`。
 如果哪天某一格「只有裝了某個東西才會過」，那就是設計退步了，不是環境的問題。
 
-### Codex 那邊還沒驗
+### Codex 在 Windows 上（2026-08-11 實測）
 
-Codex 讀不到我們的 hook，所以沒有 `PreToolUse:` 那條捷徑，只能靠上面那三題的語言指紋。
-**第三種可能（cmd）不要漏**：真的是 cmd 的話，那 43 條 `PowerShell(...)` 規則對它一條都不管用。
+| 觀察 | 結論 |
+|---|---|
+| 跑出來的命令列是 `pwsh.exe -NoProfile -Command "try { [Console]::OutputEncoding=…UTF8 } catch {} …"` | **Codex 走 PowerShell，不走 bash**；有 pwsh 就用 pwsh。它自己把輸出編碼設成 UTF-8 |
+| `-NoProfile` | **學生 profile 裡的包裝函式不會載入**——凡是「靠 profile 才成立」的東西（例如 tab-sync 的包裝），在 codex 跑的指令裡不存在 |
+| `Automatic approval review approved (risk: low …)` | Codex 有**自己一套核准機制**。我們發的 Claude Code 白名單與 hook 對它**完全無效** |
+
+⚠️ **Store 版的 pwsh 會讓 codex 的沙箱起不來**：
+
+```
+windows sandbox: runner failed during SpawnChild:
+CreateProcessAsUserW failed: 1920 (The file cannot be accessed by the system.)
+cmd=C:\Users\Reed\AppData\Local\Microsoft\WindowsApps\pwsh.exe …
+```
+
+`WindowsApps` 底下那個是 Store 版的**執行別名**（reparse point），在受限權杖下起不來 → codex 第一次
+失敗、退回要人批准才跑得掉。學生會看到一次莫名其妙的錯誤加一次額外的批准。
+
+**所以 pwsh 要裝 MSI 版**（落在 `C:\Program Files\PowerShell\7\pwsh.exe`）：
+
+```powershell
+winget install --id Microsoft.PowerShell -e --source winget --accept-source-agreements --accept-package-agreements
+```
+
+判定裝的是哪一種：`(Get-Command pwsh).Source` —— 出現 `WindowsApps` 就是 Store 版。
 
 ## 4. 回報格式
 
