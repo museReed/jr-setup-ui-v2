@@ -1,7 +1,35 @@
 import assert from "node:assert/strict";
+import { readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { test } from "node:test";
 
-import { createTerminalOpener } from "./terminal-opener.ts";
+import { createTerminalOpener, writeLauncher } from "./terminal-opener.ts";
+
+test("verify-codex 的 macOS launcher 打的是學生自己會打的 codex，不繞過包裝函式", () => {
+  const marker = path.join(tmpdir(), `jr-terminal-test-${process.pid}.done`);
+  const launcher = writeLauncher("codex", `test-${process.pid}`, marker, "darwin");
+
+  try {
+    const body = readFileSync(launcher, "utf8");
+    assert.match(body, /^codex --version$/m);
+    // 加了 `command` 就繞過包裝函式，而包裝函式正是這一格唯一抓得到的失敗。
+    assert.doesNotMatch(body, /command codex/);
+  } finally {
+    rmSync(launcher, { force: true });
+  }
+});
+
+test("verify-codex 的 Windows launcher 第一個字元是 BOM", () => {
+  const marker = path.join(tmpdir(), `jr-terminal-test-${process.pid}.done`);
+  const launcher = writeLauncher("codex", `test-${process.pid}`, marker, "win32");
+
+  try {
+    assert.equal(readFileSync(launcher, "utf8")[0], "\uFEFF");
+  } finally {
+    rmSync(launcher, { force: true });
+  }
+});
 
 // 學生把終端視窗關掉時我們不會知道，只能等滿逾時（三到四分鐘）——那段時間畫面上
 // 每顆按鈕都是灰的。取消要能立刻把等待結束掉，而結論跟逾時一樣是「沒走完」。

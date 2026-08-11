@@ -4,6 +4,8 @@ export const zhCN: Record<MessageKey, string> = {
   "card.claude": "Claude Code",
   "check.claude": "Claude Code CLI",
   "check.claude-auth": "Claude Code 登录状态",
+  "check.codex": "Codex CLI",
+  "check.codex-auth": "Codex 登录状态",
 
   "check.hook": "一次只跑一个指令",
   "check.allowlist": "常用指令不用每次问你",
@@ -43,7 +45,9 @@ export const zhCN: Record<MessageKey, string> = {
   "action.cancel": "取消这一轮",
   "action.submit-code": "送出",
   "action.open-link": "打开登录页面",
+  "action.open-codex-link": "浏览器没打开？点这里打开 OpenAI 授权页面",
 
+  "card.codex": "Codex CLI",
   "card.guardrails": "它什么时候该停下来问你",
   "card.checklist-title": "这张卡要完成的事",
   "card.advance-done": "这张做完了",
@@ -84,6 +88,9 @@ export const zhCN: Record<MessageKey, string> = {
   "run.failed": "没有成功",
   "run.start-install-claude": "正在安装 Claude Code。这一步要下载，可能要一两分钟。",
   "run.start-login-claude": "正在开始登录。等一下会出现一段网址与代码，照着做完再回来。",
+  "run.start-install-codex": "正在安装 Codex CLI。这一步要下载，可能要一两分钟。",
+  "run.start-login-codex":
+    "正在开始登录 Codex。浏览器会自动打开；如果没有，再点画面上的备用链接。",
   "run.start-install-hook": "正在装「一次只跑一个指令」的拦截器。",
   "run.start-install-allowlist": "正在写入常用指令的白名单。",
   "run.verify-opened": "已开启一个新的终端窗口，照里面的字做完再回来。",

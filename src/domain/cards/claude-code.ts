@@ -7,6 +7,7 @@ export const claudeCodeCard: Card = {
   id: "claude",
   sectionId: "env",
   labelKey: K.card.claude,
+  logoId: "logo-claude",
   checks: [
     {
       id: "claude",

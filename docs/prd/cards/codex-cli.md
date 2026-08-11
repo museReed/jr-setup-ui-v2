@@ -35,7 +35,7 @@ v2 這一側的對照物：`src/domain/cards/claude-code.ts`、`src/adapter/serv
 | 格 id | 標題 | 細節 | 誰判定 | 判定來源 | 這個判定證明不了什麼 |
 |---|---|---|---|---|---|
 | `codex` | Codex CLI | 探測 `codex --version` exit 0 | 結構探測 | `src/env-check.js:697-700` | 只證明「這支程式在，而且嚮導叫得動」。學生自己的終端機裡叫不叫得動，探測看不到（PATH 由 `~/.zprofile` 補、shell 設定檔可能有同名包裝函式） |
-| `codex` | 同上，第二段 | 開一個真的終端視窗跑 `command codex --version`，學生看到版本號按 Enter | 行為驗證 | **新增**（見下） | 只證明那個視窗裡叫得動。不證明 codex 能連線、能登入、模型跑得動 |
+| `codex` | 同上，第二段 | 開一個真的終端視窗（互動式 zsh，會讀學生自己的設定檔）跑 `codex --version`，學生看到版本號按 Enter | 行為驗證 | **新增**（見下） | 只證明那個視窗裡叫得動。不證明 codex 能連線、能登入、模型跑得動 |
 | `codex-auth` | Codex 登入狀態 | 探測 `codex login status` exit 0 | 結構探測 | `src/env-check.js:606-641` | 只證明本機存著一份還沒過期的憑證。不證明額度還有、不證明送得出請求 |
 
 ### 「新增」那一格的理由與範圍
@@ -127,8 +127,12 @@ cmd: "codex"    args: ["login"]    acceptsInput: true    env: {}
 
 照 `terminal-opener.ts:200-234` 的 `writeLauncher`，只換 CLI 名字與標題文字：
 
-- darwin：`#!/bin/zsh -i` + `command codex --version` + 提示 + `read -r _` + 寫記號檔。
-  - `-i` 要留（PATH 靠 `~/.zprofile`／`.zshrc` 補），`command` 要留（繞過同名包裝函式）。
+- darwin：`#!/bin/zsh -i` + `codex --version` + 提示 + `read -r _` + 寫記號檔。
+  - `-i` 要留（PATH 靠 `~/.zprofile`／`.zshrc` 補）。
+  - ⚠️ **不要加 `command`。** 這一格問的是「在你自己的終端機裡打得動嗎」，而同名包裝函式蓋掉執行檔
+    正是它唯一抓得到的失敗；`command` 剛好繞過那個包裝，等於把這一格驗空。
+    `writeAskClaudeLauncher` 那邊要 `command` 是另一件事（怕包裝函式吃掉旗標，
+    `terminal-opener.ts:276-281`），不要類推過來。
 - win32：`.ps1`（**要 BOM**，否則 PowerShell 5.1 當 ANSI 讀、中文變亂碼連 parse 都過不了）+ `codex --version` + `Read-Host` + 寫記號檔。
 - 逾時沿用 `MARKER_TIMEOUT_MS = 180_000`。
 - 假環境下走完要把 `codex` / `codex-auth` 設成 `ok`（對稱於 `terminal-opener.ts:82-85`）。
@@ -148,7 +152,7 @@ codex --version
 確認完按 Enter 關掉這個視窗，網頁上那一格會跟著變綠。
 ```
 
-不能改的：`command`（繞包裝函式）、`-i`（讀 rc 才有 PATH）、`.ps1` 的 BOM、`read -r _`／`Read-Host`
+不能改的：`-i`（讀 rc 才有 PATH）、指令**不加** `command`（見 §5）、`.ps1` 的 BOM、`read -r _`／`Read-Host`
 （沒有它視窗會一閃就關，學生什麼都沒看到）。
 
 ## 7. 失敗長相
@@ -213,7 +217,7 @@ npm test
   codex 的安裝指令裡**沒有**寫 `.zshrc` 的那一段。
 - `actions`：`login-codex` 的 args 是 `["login"]`（不含 `--device-auth`）、`acceptsInput` 是 `true`、env 裡沒有 `BROWSER`。
 - `probe`：`codex-auth` 用的是 `codex login status`。
-- `terminal-opener`：`verify-codex` 寫出來的 launcher 含 `command codex --version`；Windows 那支開頭有 BOM。
+- `terminal-opener`：`verify-codex` 寫出來的 launcher 含 `codex --version` 且**不含** `command codex`；Windows 那支開頭有 BOM。
 - `card-model`：輸出裡的授權網址被 ANSI 色碼包住時（`ESC[36m…ESC[0m`），抽出來的 href 剛好是那條網址，
   不含任何 escape 序列、也不含尾端的 `.` `,` `)`。（**先寫紅的，確認它真的會紅**）
 - `fake-env`：`JR_FAKE_ENV=missing` 會把 `codex` / `codex-auth` 一起設成 missing。

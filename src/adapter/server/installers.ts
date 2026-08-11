@@ -26,6 +26,13 @@ const CLAUDE_DARWIN_SCRIPT = [
   ensureZshrcPath("$HOME/.local/bin"),
 ].join("\n");
 
+// codex 的安裝器會自己把 ~/.local/bin 寫進 ~/.zprofile；嚮導再補一次會留下重複的
+// PATH 行，所以這支腳本只負責執行官方安裝器。
+const CODEX_DARWIN_SCRIPT = [
+  "set -eo pipefail",
+  "curl -fsSL https://chatgpt.com/codex/install.sh | sh",
+].join("\n");
+
 // Windows 的 claude.exe 裝完**不寫永久 PATH**（VM 實測：檔案在，登錄檔的 User Path
 // 裡沒有那個目錄，只有安裝當下那個視窗看得到）。症狀是安裝那一列全綠，學生開新分頁
 // 打 claude 卻說找不到指令。這是 macOS 那半 ensureZshrcPath 的對稱動作。
@@ -52,6 +59,8 @@ const CLAUDE_WIN32_COMMAND = [
   CLAUDE_WIN32_PATH_FIX,
 ].join("\n");
 
+const CODEX_WIN32_COMMAND = "irm https://chatgpt.com/codex/install.ps1 | iex";
+
 export interface Installer {
   readonly cmd: string;
   readonly args: readonly string[];
@@ -67,6 +76,26 @@ const INSTALLERS: Readonly<Record<string, Readonly<Record<string, Installer>>>> 
       cmd: "powershell.exe",
       args: ["-NoProfile", "-Command", CLAUDE_WIN32_COMMAND],
       env: {},
+    },
+  },
+  codex: {
+    darwin: {
+      cmd: "bash",
+      args: ["-c", CODEX_DARWIN_SCRIPT],
+      // 安裝器否則會直接透過 /dev/tty 問要不要啟動 Codex，網頁的 stdin 輸入框
+      // 回答不到，整個安裝會停在學生看不到的終端裡。
+      env: { CODEX_NON_INTERACTIVE: "1" },
+    },
+    win32: {
+      cmd: "powershell.exe",
+      args: [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        CODEX_WIN32_COMMAND,
+      ],
+      env: { CODEX_NON_INTERACTIVE: "1" },
     },
   },
 };

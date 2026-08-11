@@ -7,6 +7,8 @@ import type { MessageKey } from "../domain/copy-keys.ts";
 export const zhTW: Record<MessageKey, string> = {
   "check.claude": "Claude Code CLI",
   "check.claude-auth": "Claude Code 登入狀態",
+  "check.codex": "Codex CLI",
+  "check.codex-auth": "Codex 登入狀態",
 
   "check.hook": "一次只跑一個指令",
   "check.allowlist": "常用指令不用每次問你",
@@ -47,8 +49,10 @@ export const zhTW: Record<MessageKey, string> = {
   "action.cancel": "取消這一輪",
   "action.submit-code": "送出",
   "action.open-link": "打開登入頁面",
+  "action.open-codex-link": "瀏覽器沒開？點這裡開啟 OpenAI 授權頁",
 
   "card.claude": "Claude Code",
+  "card.codex": "Codex CLI",
   "card.guardrails": "它什麼時候該停下來問你",
   "card.checklist-title": "這張卡要完成的事",
   "card.advance-done": "這張做完了",
@@ -89,6 +93,9 @@ export const zhTW: Record<MessageKey, string> = {
   "run.failed": "沒有成功",
   "run.start-install-claude": "正在安裝 Claude Code。這一步要下載，可能要一兩分鐘。",
   "run.start-login-claude": "正在開始登入。等一下會出現一段網址與代碼，照著做完再回來。",
+  "run.start-install-codex": "正在安裝 Codex CLI。這一步要下載，可能要一兩分鐘。",
+  "run.start-login-codex":
+    "正在開始登入 Codex。瀏覽器會自動開啟；如果沒有，再點畫面上的備援連結。",
   "run.start-install-hook": "正在裝「一次只跑一個指令」的攔截器。",
   "run.start-install-allowlist": "正在寫入常用指令的白名單。",
   "run.verify-opened": "已開啟一個新的終端視窗，照裡面的字做完再回來。",

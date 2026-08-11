@@ -4,6 +4,8 @@ export const en: Record<MessageKey, string> = {
   "card.claude": "Claude Code",
   "check.claude": "Claude Code CLI",
   "check.claude-auth": "Claude Code sign-in",
+  "check.codex": "Codex CLI",
+  "check.codex-auth": "Codex sign-in",
 
   "check.hook": "One command at a time",
   "check.allowlist": "Common commands stop asking every time",
@@ -45,7 +47,9 @@ export const en: Record<MessageKey, string> = {
   "action.cancel": "Cancel this run",
   "action.submit-code": "Submit",
   "action.open-link": "Open the sign-in page",
+  "action.open-codex-link": "Browser didn't open? Open the OpenAI authorization page",
 
+  "card.codex": "Codex CLI",
   "card.guardrails": "When it should stop and ask you",
   "card.checklist-title": "What this card needs",
   "card.advance-done": "This card is done",
@@ -86,6 +90,9 @@ export const en: Record<MessageKey, string> = {
   "run.failed": "Didn't succeed",
   "run.start-install-claude": "Installing Claude Code. This downloads a package and can take a minute or two.",
   "run.start-login-claude": "Starting sign-in. A URL and a code will appear shortly — follow them, then come back.",
+  "run.start-install-codex": "Installing Codex CLI. This downloads a package and can take a minute or two.",
+  "run.start-login-codex":
+    "Starting Codex sign-in. The browser opens automatically; if it doesn't, use the fallback link on this page.",
   "run.start-install-hook": "Installing the \"one command at a time\" guard.",
   "run.start-install-allowlist": "Writing the allowlist for common commands.",
   "run.verify-opened":

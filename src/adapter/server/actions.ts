@@ -18,6 +18,7 @@ const NO_AUTO_BROWSER = { BROWSER: "echo" } as const;
 // 安裝走各家官方的原生安裝器，不經過 npm（理由見 installers.ts 開頭）。
 // 這台機器沒有對應的安裝器時，這個動作就不存在——按下去才失敗比按不下去難查。
 const claudeInstaller = resolveInstaller("claude", process.platform);
+const codexInstaller = resolveInstaller("codex", process.platform);
 
 export const ACTIONS: Readonly<Record<string, ActionSpec>> = {
   ...(claudeInstaller === undefined
@@ -31,6 +32,17 @@ export const ACTIONS: Readonly<Record<string, ActionSpec>> = {
           env: claudeInstaller.env,
         },
       }),
+  ...(codexInstaller === undefined
+    ? {}
+    : {
+        "install-codex": {
+          label: "安裝 Codex CLI",
+          cmd: codexInstaller.cmd,
+          args: codexInstaller.args,
+          acceptsInput: false,
+          env: codexInstaller.env,
+        },
+      }),
   "login-claude": {
     label: "登入 Claude Code",
     cmd: "claude",
@@ -38,11 +50,24 @@ export const ACTIONS: Readonly<Record<string, ActionSpec>> = {
     acceptsInput: true,
     env: NO_AUTO_BROWSER,
   },
+  "login-codex": {
+    label: "登入 Codex",
+    cmd: "codex",
+    // 裝置碼模式要求每個帳號先自行開啟授權；一般登入雖會自己開瀏覽器，卻是所有
+    // 課堂帳號都能走通的路。Codex 也不讀 Claude 用來擋瀏覽器的環境變數。
+    args: ["login"],
+    acceptsInput: true,
+    env: {},
+  },
 };
 
 // 開真終端視窗那條路不共用上面那張表：它跑的不是一條指令，而是一支我們寫出去的
 // 腳本（見 terminal-opener.ts）。這裡只留「這個 action 認不認得」。
-export const TERMINAL_ACTIONS = new Set(["verify-claude", "verify-allowlist"]);
+export const TERMINAL_ACTIONS = new Set([
+  "verify-claude",
+  "verify-codex",
+  "verify-allowlist",
+]);
 
 export function findAction(action: string): ActionSpec | undefined {
   return Object.hasOwn(ACTIONS, action) ? ACTIONS[action] : undefined;
