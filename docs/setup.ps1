@@ -86,8 +86,16 @@ Remove-Item -Force $zipPath
 
 # 舊版出貨的是純 JS，這一代要 build——網頁那半是 vite 打包出來的，dist/ 不進版控。
 Say "安裝相依套件並打包（第一次大約一分鐘）"
-npm --prefix $appDir install
-npm --prefix $appDir run build
+
+# ⚠️ `npm.cmd` 不能寫成 `npm`。PowerShell 裡的裸 `npm` 解析到的是
+# C:\Program Files\nodejs\npm.ps1，而 Windows 預設的執行原則是 Restricted——整支
+# 腳本連載入都被擋（Windows VM 實測：「running scripts is disabled on this system」，
+# bootstrap 就停在這一行）。`.cmd` 那支不受執行原則管，官方安裝檔兩支都放了。
+#
+# 也不在這裡改機器的執行原則：那是「Windows 先準備好」那張卡要帶學生自己做的事，
+# bootstrap 偷偷改掉的話，那張卡驗出來就永遠是綠的。
+npm.cmd --prefix $appDir install
+npm.cmd --prefix $appDir run build
 
 Say "啟動嚮導（關掉這個視窗就會結束）"
 
