@@ -47,7 +47,7 @@ export async function openTerminalWindow(
 
   // 這條只負責把視窗開起來，不像 verify 要等結論；因此不發 run-done，也不建立
   // running action，學生可以一直留在新視窗工作而不會卡住網頁。
-  openWindow(action);
+  await openWindow(action);
   sendJson(response, 200, { ok: true });
 }
 
