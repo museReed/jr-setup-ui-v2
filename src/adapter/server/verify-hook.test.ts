@@ -59,7 +59,7 @@ test("註冊指到不存在的檔時算沒過", async () => {
 
   const verdict = await verifyHookBehavior();
 
-  // 找不到檔案 node 回 exit 1——而 PreToolUse 把非 2 的失敗當成「hook 壞了，
-  // 放行」。所以那等於沒擋，不能算過。
+  // 找不到檔案的話 node 什麼決定都印不出來——沒有 deny 就是沒擋，不能算過。
+  // （Claude Code 那邊同樣是放行：hook 自己壞掉不會攔住任何東西。）
   assert.equal(verdict.passed, false, verdict.lines.join("\n"));
 });

@@ -32,14 +32,17 @@ export async function verifyHookBehavior(): Promise<HookVerdict> {
   const lines = [`跑註冊的那條指令：${command}`];
 
   const blocked = await runHook(command, CHAINED);
-  lines.push(`餵「${CHAINED}」→ exit ${blocked.code}${blocked.code === 2 ? "（擋下了）" : "（沒擋）"}`);
+  lines.push(`餵「${CHAINED}」→ ${blocked.denied ? "deny（擋下了）" : "沒擋"}`);
 
   const allowed = await runHook(command, SAFE);
-  lines.push(`餵「${SAFE}」→ exit ${allowed.code}${allowed.code === 0 ? "（放行）" : "（被擋了）"}`);
+  lines.push(`餵「${SAFE}」→ ${allowed.denied ? "被擋了" : "放行"}`);
 
-  // exit 2 才是「擋下」。exit 1 是腳本自己出錯——而 PreToolUse 把非 2 的失敗
-  // 當成「hook 壞了，放行」，所以那等於沒擋。前一代整個斷點就在這裡。
-  const passed = blocked.code === 2 && allowed.code === 0;
+  // ⚠️ 判準是**它印出來的決定**，不是結束碼。
+  //
+  // 「exit 2 等於擋下」把決定藏在副作用裡，而副作用會被中間層改寫：Windows 上
+  // hook 經過 shell，node 回的 2 變成別的非零碼，Claude Code 就當成「hook 壞了，
+  // 放行」（#38 實測：訊息到了、指令照跑）。所以腳本改成印 JSON，這裡也照著看。
+  const passed = blocked.denied && !allowed.denied;
   lines.push(passed ? "兩題都對，攔截器確實生效。" : "沒有生效——照上面的 exit code 看是哪一題錯了。");
 
   return { passed, lines };
@@ -74,17 +77,28 @@ function commands(node: unknown): string[] {
 
 // 用 shell 跑那條字串，跟 Claude Code 叫它的方式一樣——引號與跳脫的問題只有
 // 這樣才驗得到。
-function runHook(command: string, bashCommand: string): Promise<{ code: number }> {
+function runHook(command: string, bashCommand: string): Promise<{ denied: boolean }> {
   const payload = JSON.stringify({
     tool_name: "Bash",
     tool_input: { command: bashCommand },
   });
 
   return new Promise((resolve) => {
-    const child = exec(command, { timeout: 10_000 }, (error) => {
-      resolve({ code: error === null ? 0 : (error.code ?? 1) });
+    const child = exec(command, { timeout: 10_000 }, (_error, stdout) => {
+      resolve({ denied: isDenial(stdout) });
     });
 
     child.stdin?.end(payload);
   });
+}
+
+function isDenial(stdout: string): boolean {
+  try {
+    const parsed = JSON.parse(stdout.trim()) as {
+      hookSpecificOutput?: { permissionDecision?: string };
+    };
+    return parsed.hookSpecificOutput?.permissionDecision === "deny";
+  } catch {
+    return false;
+  }
 }

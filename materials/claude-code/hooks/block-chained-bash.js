@@ -42,13 +42,32 @@ process.stdin.on("end", () => {
   if (/&&|\|\||;/.test(stripped)) {
     // ⚠️ 不要寫「拆成多次 Bash 呼叫」。Windows 上 Claude Code 有兩個跑指令的工具
     // （Bash 與 PowerShell），走哪一條是模型當下自己選的——指名 Bash 會讓走 PowerShell
-    // 的學生看到一句對不上自己畫面的話。第一行那句是判定用的關鍵字，不要動。
-    process.stderr.write(
+    // 的學生看到一句對不上自己畫面的話。第一句是判定用的關鍵字，不要動。
+    const reason =
       "一次只跑一個指令：偵測到 && / || / ; 串接。\n" +
-        "請拆成多次呼叫，一次一條——這樣白名單才命中，也看得清每一步。\n" +
-        "（單一 pipe | 可以；需要切目錄請用絕對路徑，別用 `cd x && 指令`。）",
+      "請拆成多次呼叫，一次一條——這樣白名單才命中，也看得清每一步。\n" +
+      "（單一 pipe | 可以；需要切目錄請用絕對路徑，別用 `cd x && 指令`。）";
+
+    // ⚠️ 用 JSON 明講「拒絕」，**不要**靠 exit 2。
+    //
+    // 「exit 2 等於擋下」是把決定藏在結束碼這個副作用裡，而副作用會被中間層改寫：
+    // Windows 上 hook 是透過 shell 叫起來的，node 回的 2 沒有原封不動傳到 Claude Code，
+    // 於是落進「其他結束碼＝只顯示給使用者，但繼續執行」那一類。實測畫面是
+    // 「PreToolUse:PowerShell hook error / Failed with non-blocking status code: <我們的訊息>」
+    // ——訊息到了、指令照跑（#38）。
+    //
+    // 決定寫在內容裡就沒有這個問題。stderr 那份留著是給人手動測時看的。
+    process.stdout.write(
+      `${JSON.stringify({
+        hookSpecificOutput: {
+          hookEventName: "PreToolUse",
+          permissionDecision: "deny",
+          permissionDecisionReason: reason,
+        },
+      })}\n`,
     );
-    process.exit(2); // PreToolUse exit 2 = 擋下這次呼叫，stderr 內容回給 Claude
+    process.stderr.write(reason);
+    process.exit(0);
   }
 
   process.exit(0);
