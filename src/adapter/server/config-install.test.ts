@@ -6,7 +6,12 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { checkAllowlist, checkHook } from "./config-check.ts";
-import { hookCommand, installAllowlist, installHook } from "./config-install.ts";
+import {
+  hookCommand,
+  hookRegistration,
+  installAllowlist,
+  installHook,
+} from "./config-install.ts";
 
 const MATERIALS = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -93,6 +98,35 @@ test("註冊指的是舊指令時算沒裝，學生按重新安裝就修好", as
   // 退回舊版那種留著反斜線的寫法。
   hooks.PreToolUse[0]!.hooks[0]!.command = `node "${path.join(dir, "hooks", "block-chained-bash.js").replaceAll("/", "\\")}"`;
   writeFileSync(settingsFile, JSON.stringify(settings));
+
+  assert.equal(await checkHook({ root: MATERIALS }), "missing");
+
+  await drain(installHook(MATERIALS));
+  assert.equal(await checkHook({ root: MATERIALS }), "ok");
+});
+
+// ⚠️ #34：matcher 賭的是「那個工具叫什麼名字」，而對不上時整條 hook 不觸發、
+// 沒有任何訊息（Windows VM 上 /hooks 顯示裝好了，指令卻從來沒被擋）。範圍改由腳本
+// 自己判斷「這次呼叫帶不帶指令字串」。
+test("matcher 是 *，不是賭工具叫什麼名字", () => {
+  assert.equal(hookRegistration("/tmp/hook.js")["matcher"], "*");
+});
+
+test("停在舊 matcher 的機器算沒裝，按重新安裝就會被換掉", async () => {
+  const dir = sandbox();
+  mkdirSync(dir, { recursive: true });
+  const target = path.join(dir, "hooks", "block-chained-bash.js");
+  writeFileSync(
+    path.join(dir, "settings.json"),
+    JSON.stringify({
+      hooks: {
+        PreToolUse: [
+          // 指令是對的，只有 matcher 是舊的——這種註冊在畫面上最像「已經裝好」。
+          { matcher: "Bash", hooks: [{ type: "command", command: hookCommand(target) }] },
+        ],
+      },
+    }),
+  );
 
   assert.equal(await checkHook({ root: MATERIALS }), "missing");
 
