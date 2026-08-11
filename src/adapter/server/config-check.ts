@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 
 import type { CheckStatus } from "../../domain/check.ts";
-import { hookRegistration } from "./config-install.ts";
+import { hookRegistration, starterRules } from "./config-install.ts";
 import { hookPath, settingsPath } from "./paths.ts";
 
 // 設定檔類的檢查。
@@ -36,16 +36,15 @@ export async function checkHook(materials: ConfigMaterials): Promise<CheckStatus
 export async function checkAllowlist(
   materials: ConfigMaterials,
 ): Promise<CheckStatus> {
-  const starter = await readJson(
-    path.join(materials.root, "claude-code", "starter-allowlist.json"),
-  );
   const settings = await readJson(settingsPath());
 
-  if (starter === null || settings === null) {
+  if (settings === null) {
     return "missing";
   }
 
-  const wanted = rules(starter);
+  // 要哪幾條由平台決定（Windows 多一份 PowerShell 的）——問的必須跟裝的是同一份，
+  // 不然 Windows 上會裝了 PowerShell 那批卻不檢查它們。
+  const wanted = await starterRules(materials.root, process.platform);
   const have = new Set(rules(settings));
 
   // 少一條就算沒裝完。逐條比對而不是「有沒有 permissions 這個欄位」——學生機器上

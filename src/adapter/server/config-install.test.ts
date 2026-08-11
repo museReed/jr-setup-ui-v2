@@ -11,6 +11,7 @@ import {
   hookRegistration,
   installAllowlist,
   installHook,
+  starterRules,
 } from "./config-install.ts";
 
 const MATERIALS = path.resolve(
@@ -153,6 +154,32 @@ test("裝的是舊版時算沒裝", async () => {
   writeFileSync(path.join(dir, "hooks", "block-chained-bash.js"), "// 上一輪的舊版\n");
 
   assert.equal(await checkHook({ root: MATERIALS }), "missing");
+});
+
+// ⚠️ Windows 是兩份**疊加**：那邊 Claude Code 有兩條路，模型自己選。只發 Bash 那份的話，
+// 它走 PowerShell 時一條都對不上，而學生會在「常用指令不用每次問你」那格被問到底。
+test("Windows 多發一份 PowerShell 的規則，而且 Bash 那批照樣在", async () => {
+  const win = await starterRules(MATERIALS, "win32");
+
+  assert.ok(win.includes("Bash(git status:*)"), "Bash 那批不見了");
+  assert.ok(win.includes("PowerShell(Test-Path:*)"), "PowerShell 那批沒發");
+});
+
+test("macOS 不發 PowerShell 的規則——那台機器上永遠不會命中", async () => {
+  const mac = await starterRules(MATERIALS, "darwin");
+
+  assert.ok(mac.every((rule) => !rule.startsWith("PowerShell(")));
+  assert.ok(mac.includes("Bash(git status:*)"));
+});
+
+// 白名單那題會叫模型跑 echo / pwd / git status；PowerShell 那條路上這三個都要命中，
+// 否則它跳提示，而題目正好叫學生不要按允許——必然失敗，且原因跟白名單無關。
+test("驗證題會用到的那三個指令，PowerShell 那份都涵蓋", async () => {
+  const win = await starterRules(MATERIALS, "win32");
+
+  for (const rule of ["PowerShell(echo:*)", "PowerShell(pwd)", "PowerShell(git status:*)"]) {
+    assert.ok(win.includes(rule), `少了 ${rule}`);
+  }
 });
 
 test("裝白名單：只加沒有的，學生自己的規則保留", async () => {
