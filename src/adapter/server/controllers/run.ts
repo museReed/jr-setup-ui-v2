@@ -54,6 +54,12 @@ export async function startRun(
     });
     // 裝完 / 登入完要重探一次，那一格才會自己變色，不用學生按重新檢查。
     await refreshChecks(ctx);
+    // ⚠️ 這條路是 fire-and-forget（runId 早就回去了），沒有這個 catch，這裡丟出來的
+    // 例外就是 unhandled rejection——Node 會把整個伺服器結束掉，而學生看到的是
+    // 「按了沒反應，之後每顆按鈕都沒用」（同 #24 的形狀）。
+  }).catch((error: unknown) => {
+    console.error(error);
+    ctx.bus.publish({ type: "run-done", runId: handle.runId, success: false });
   });
 }
 
