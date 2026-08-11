@@ -100,6 +100,6 @@ export const en: Record<MessageKey, string> = {
   "run.verify-abandoned":
     "That terminal window wasn't finished (closed, or idle for over three minutes). This doesn't count as verified — you can press it again.",
   "run.verify-blocked":
-    "Something on this card isn't installed yet. Install every row first — verifying a half-installed card proves nothing.",
+    "This row isn't installed yet. Press Install on this same row first — verifying something that isn't there proves nothing.",
   "run.verify-undeclared": "There's nothing to verify on this row.",
 };

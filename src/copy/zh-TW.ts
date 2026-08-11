@@ -101,7 +101,9 @@ export const zhTW: Record<MessageKey, string> = {
   "run.verify-opened": "已開啟一個新的終端視窗，照裡面的字做完再回來。",
   "run.verify-abandoned":
     "那個終端視窗沒有走完（被關掉，或超過三分鐘沒動作）。這次不算驗證通過，可以再按一次。",
+  // ⚠️ 這句話要指著**那一列**，不是整張卡：擋的判斷是逐格的（見 domain/progress
+  // 的 canVerifyYet），寫成卡片級的話，學生會盯著另一列明明已經裝好的格子想不通。
   "run.verify-blocked":
-    "這張卡上還有沒裝完的東西，先把每一格都裝好再驗——只裝一半去驗，驗過了也不算數。",
+    "這一列還沒裝好，先按同一列的「安裝」再回來驗——沒裝的東西驗過了也不算數。",
   "run.verify-undeclared": "這一格沒有可以驗的東西。",
 };
