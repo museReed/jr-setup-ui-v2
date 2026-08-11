@@ -2,7 +2,29 @@ import assert from "node:assert/strict";
 import { PassThrough } from "node:stream";
 import test from "node:test";
 
-import { writeLine } from "./process-runner.ts";
+import type { RunEvent } from "../../usecase/ports.ts";
+import { pushLines, writeLine } from "./process-runner.ts";
+
+// 過濾器接上去了沒——`isProgressNoise` 自己綠不代表這條路真的用到它。
+test("子程序吐出來的進度動畫不會變成事件，同一批裡的訊息照樣送出去", () => {
+  const events: RunEvent[] = [];
+  const queue = { push: (event: RunEvent) => void events.push(event) };
+
+  pushLines(
+    queue,
+    Buffer.from(
+      ["  - ", "  \\ ", "Successfully installed", "  | ", "   \\ Cancelling operation"].join(
+        "\n",
+      ),
+      "utf8",
+    ),
+  );
+
+  assert.deepEqual(
+    events.map((event) => event.text),
+    ["Successfully installed", "   \\ Cancelling operation"],
+  );
+});
 
 // 這題在守少一個 \n 時，學生貼了碼畫面完全沒反應，而且沒有任何線索。
 test("送進 stdin 的內容會以 UTF-8 寫成完整的一行", async () => {
