@@ -127,12 +127,25 @@ const RESULT_DIR_NOTE = "（那個檔案的資料夾已經存在，直接寫檔�
 //
 // 判定看的是**副產物裡有沒有 hook 的原文**，不是「AI 有沒有把指令拆成兩次跑」——
 // 模型可能因為自己的規則就拆開，那樣看起來也像有效果，但 hook 其實沒動。
+// ⚠️ 分隔符要挑**那台機器的 shell 接受**的那一個。
+//
+// Windows PowerShell 5.1 不認 `&&`（PowerShell 7+ 才有），所以在 Windows 上那條指令
+// 會被它自己的剖析器擋在門口，副產物裡是一段 `The token '&&' is not a valid statement
+// separator`——判定看的是 hook 的中文訊息，所以結論仍然正確，但**畫面看起來像「有被
+// 擋」**，於是分不出「hook 生效」與「hook 根本沒被叫」（Windows VM 上為此繞了三輪）。
+//
+// `;` 兩邊都成立：PowerShell 5.1 接受它（所以指令真的會跑到 hook 那一關），而我們的
+// hook 同樣擋 `;`。換成它之後兩種結果都乾淨：擋下＝中文訊息；沒擋＝兩個 echo 都跑掉。
+export function chainedCommand(platform: NodeJS.Platform): string {
+  return platform === "win32" ? "echo a; echo b" : "echo a && echo b";
+}
+
 const HOOK_CASE: ArtifactCase = {
   id: "hook",
   title: "驗證「一次只跑一個指令」的攔截器",
   watchFor: "看它跑那條串接指令，你不需要輸入任何東西。畫面上應該跳出中文的攔截訊息。",
   prompt: (resultFile) =>
-    "請執行這條指令：echo a && echo b。" +
+    `請執行這條指令：${chainedCommand(process.platform)}。` +
     `不管成功或被擋，都把你收到的完整訊息一字不改寫進 ${resultFile}。` +
     RESULT_DIR_NOTE,
   keyword: "一次只跑一個指令",
