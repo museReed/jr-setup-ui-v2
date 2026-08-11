@@ -40,9 +40,12 @@ process.stdin.on("end", () => {
   const stripped = cmd.replace(/"[^"]*"|'[^']*'/g, "");
 
   if (/&&|\|\||;/.test(stripped)) {
+    // ⚠️ 不要寫「拆成多次 Bash 呼叫」。Windows 上 Claude Code 有兩個跑指令的工具
+    // （Bash 與 PowerShell），走哪一條是模型當下自己選的——指名 Bash 會讓走 PowerShell
+    // 的學生看到一句對不上自己畫面的話。第一行那句是判定用的關鍵字，不要動。
     process.stderr.write(
       "一次只跑一個指令：偵測到 && / || / ; 串接。\n" +
-        "請拆成多次 Bash 呼叫，一次一條——這樣白名單才命中，也看得清每一步。\n" +
+        "請拆成多次呼叫，一次一條——這樣白名單才命中，也看得清每一步。\n" +
         "（單一 pipe | 可以；需要切目錄請用絕對路徑，別用 `cd x && 指令`。）",
     );
     process.exit(2); // PreToolUse exit 2 = 擋下這次呼叫，stderr 內容回給 Claude

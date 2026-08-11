@@ -71,9 +71,7 @@ export async function* installHook(
 export async function* installAllowlist(
   materialsRoot: string,
 ): AsyncGenerator<RunEvent> {
-  const starterPath = path.join(materialsRoot, "claude-code", "starter-allowlist.json");
-  const starter = JSON.parse(await readFile(starterPath, "utf8")) as Record<string, unknown>;
-  const wanted = allowRules(starter);
+  const wanted = await starterRules(materialsRoot, process.platform);
 
   const settings = await loadSettings();
   const permissions = asRecord(settings["permissions"]);
@@ -90,6 +88,39 @@ export async function* installAllowlist(
   yield line(`寫入 ${settingsPath()}`);
   yield line(`新增 ${added.length} 條規則，原有 ${allow.length} 條保留`);
   yield done();
+}
+
+// 這台機器該發哪幾條規則。
+//
+// ⚠️ Windows 是**兩份疊加**，不是換一份。那邊 Claude Code 有兩條路（Bash 走 Git Bash、
+// PowerShell 是另一個一級工具），而**選哪一條是模型當下自己決定的**。只發 Bash 那份的話，
+// 它走 PowerShell 時 39 條一條都對不上——學生會在一個叫「常用指令不用每次問你」的格子上
+// 被問到底（舊版 Windows VM 實測：New-Item 帶著分號沒被擋，還跳出 requires approval）。
+export async function starterRules(
+  materialsRoot: string,
+  platform: NodeJS.Platform,
+): Promise<string[]> {
+  const files = ["starter-allowlist.json"];
+
+  if (platform === "win32") {
+    files.push("starter-allowlist.win32.json");
+  }
+
+  const rules: string[] = [];
+
+  for (const file of files) {
+    const doc = JSON.parse(
+      await readFile(path.join(materialsRoot, "claude-code", file), "utf8"),
+    ) as Record<string, unknown>;
+
+    for (const rule of allowRules(doc)) {
+      if (!rules.includes(rule)) {
+        rules.push(rule);
+      }
+    }
+  }
+
+  return rules;
 }
 
 function allowRules(doc: Record<string, unknown>): string[] {
