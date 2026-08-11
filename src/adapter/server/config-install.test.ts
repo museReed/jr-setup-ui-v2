@@ -6,7 +6,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 import { checkAllowlist, checkHook } from "./config-check.ts";
-import { installAllowlist, installHook } from "./config-install.ts";
+import { hookCommand, installAllowlist, installHook } from "./config-install.ts";
 
 const MATERIALS = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -48,6 +48,56 @@ test("hook 的註冊指令有把路徑包引號", async () => {
   const settings = readFileSync(path.join(dir, "settings.json"), "utf8");
 
   assert.match(settings, /node \\"[^"]*block-chained-bash\.js\\"/);
+});
+
+// ⚠️ 這一題是 #26 的正本：Windows 路徑留著反斜線的話，那串會被 bash 當跳脫序列吃掉
+// （`C:\Users\Reed` → `C:UsersReed`），node 找不到檔案 → exit 1 → PreToolUse 把 exit 1
+// 當「hook 出錯，放行」。畫面上一路綠燈，實際什麼都沒擋。
+test("Windows 形狀的路徑會被換成正斜線，不留任何反斜線給 bash 吃掉", () => {
+  assert.equal(
+    hookCommand("C:\\Users\\Reed\\.claude\\hooks\\block-chained-bash.js"),
+    'node "C:/Users/Reed/.claude/hooks/block-chained-bash.js"',
+  );
+});
+
+// 已經裝過一輪的機器要能自己修好——「有就跳過」的話，壞掉的註冊會一直留著。
+test("既有的壞註冊會被換掉，不是被當成已經裝好而跳過", async () => {
+  const dir = sandbox();
+  mkdirSync(dir, { recursive: true });
+  const broken = `node "${path.join(dir, "hooks", "block-chained-bash.js")}"`;
+  writeFileSync(
+    path.join(dir, "settings.json"),
+    JSON.stringify({
+      hooks: { PreToolUse: [{ matcher: "Bash", hooks: [{ type: "command", command: broken }] }] },
+    }),
+  );
+
+  await drain(installHook(MATERIALS));
+  const settings = readFileSync(path.join(dir, "settings.json"), "utf8");
+
+  assert.equal(settings.split("block-chained-bash.js").length - 1, 1, "舊的沒被換掉或疊了兩份");
+  assert.ok(
+    settings.includes(JSON.stringify(hookCommand(path.join(dir, "hooks", "block-chained-bash.js"))).slice(1, -1)),
+    "寫進去的不是這一版的指令",
+  );
+});
+
+// 指到那支腳本還不夠：指令本身也要是這一版寫得出來的那一個，否則綠燈但不擋。
+test("註冊指的是舊指令時算沒裝，學生按重新安裝就修好", async () => {
+  const dir = sandbox();
+  await drain(installHook(MATERIALS));
+
+  const settingsFile = path.join(dir, "settings.json");
+  const settings = JSON.parse(readFileSync(settingsFile, "utf8")) as Record<string, unknown>;
+  const hooks = settings["hooks"] as { PreToolUse: { hooks: { command: string }[] }[] };
+  // 退回舊版那種留著反斜線的寫法。
+  hooks.PreToolUse[0]!.hooks[0]!.command = `node "${path.join(dir, "hooks", "block-chained-bash.js").replaceAll("/", "\\")}"`;
+  writeFileSync(settingsFile, JSON.stringify(settings));
+
+  assert.equal(await checkHook({ root: MATERIALS }), "missing");
+
+  await drain(installHook(MATERIALS));
+  assert.equal(await checkHook({ root: MATERIALS }), "ok");
 });
 
 test("重裝不會重複註冊", async () => {
