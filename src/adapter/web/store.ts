@@ -3,6 +3,7 @@ import { findCapabilities } from "../../domain/card.ts";
 import { K, type MessageKey } from "../../domain/copy-keys.ts";
 import type { ProgressState } from "../../domain/progress.ts";
 import { api, ApiError, type ServerEvent, type StateBody, type WireProgress } from "./api.ts";
+import { CARD_PARAM, resolveCardIndex } from "./viewmodel/card-route.ts";
 import {
   matchesPasteProof,
   type AppState,
@@ -34,6 +35,27 @@ const LOCALE_STORAGE_KEY = "jr.locale";
 function loadLocale(): Locale {
   const saved = localStorage.getItem(LOCALE_STORAGE_KEY);
   return isLocale(saved) ? saved : "zh-TW";
+}
+
+// 網址列的讀與寫。兩邊都容忍「這個環境沒有 location／history」——測試跑在 Node 裡，
+// 而這兩件事都只是體驗，不該讓 store 本身載不起來。
+function cardParamFromUrl(): string | null {
+  const search = globalThis.location?.search;
+  return search === undefined ? null : new URLSearchParams(search).get(CARD_PARAM);
+}
+
+// ⚠️ 用 replaceState 不用 pushState：每換一張就塞一筆歷史的話，學生按上一頁只會
+// 一張一張倒退回去，而他想回的通常是嚮導之外的那個頁面。
+function writeCardToUrl(id: string): void {
+  const href = globalThis.location?.href;
+
+  if (href === undefined || globalThis.history === undefined) {
+    return;
+  }
+
+  const url = new URL(href);
+  url.searchParams.set(CARD_PARAM, id);
+  globalThis.history.replaceState(null, "", url);
 }
 
 export function createStore(): Store {
@@ -115,10 +137,15 @@ export function createStore(): Store {
 
     async load() {
       applyBody(await api.state());
-      const first = state.cards[0];
+      // 網址指定哪一張就從哪一張開始。驗收時要重跑第 N 張卡，不然得從第一張
+      // 一路按「下一張」按過去。
+      const index = resolveCardIndex(state.cards, cardParamFromUrl());
+      const card = state.cards[index];
 
-      if (first !== undefined) {
-        applyBody(await api.visit(first.id));
+      if (card !== undefined) {
+        set({ activeIndex: index });
+        writeCardToUrl(card.id);
+        applyBody(await api.visit(card.id));
       }
     },
 
@@ -215,6 +242,7 @@ export function createStore(): Store {
 
       // 換卡先清終端：那幾行講的是上一張的事，留著只會讓學生以為現在這張跑過了。
       set({ activeIndex: state.activeIndex + 1, terminal: [] });
+      writeCardToUrl(next.id);
       applyBody(await api.visit(next.id));
     },
 
