@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { claudeCodeCard, FULLSCREEN_PROOF } from "../../../domain/catalog.ts";
+import {
+  claudeCodeCard,
+  FULLSCREEN_PROOF,
+} from "../../../domain/cards/claude-code.ts";
 import type { CheckId, CheckStatus } from "../../../domain/check.ts";
 import { K } from "../../../domain/copy-keys.ts";
 import type { ProgressState } from "../../../domain/progress.ts";
@@ -48,6 +51,19 @@ test("貼回驗證會容忍前後空白，但錯誤代碼不會通過", () => {
   assert.equal(matchesPasteProof(` \n${FULLSCREEN_PROOF}\t`, FULLSCREEN_PROOF), true);
   assert.equal(matchesPasteProof("wrong-code", FULLSCREEN_PROOF), false);
   assert.equal(matchesPasteProof("", FULLSCREEN_PROOF), false);
+});
+
+test("貼回輸入框顯示 store 裡尚未送完的原文", () => {
+  const text = "打到一半 ";
+  const model = cardModel({
+    ...appState({ claude: "ok" }, {}),
+    proofValues: { "fullscreen-copy": text },
+  });
+
+  assert.equal(
+    model.checklist.rows.find((row) => row.id === "fullscreen-copy")?.proofValue,
+    text,
+  );
 });
 
 test("驗證按鈕帶著它那一格的 checkId", () => {
@@ -222,6 +238,7 @@ function appState(
     locale: "zh-TW",
     platform: "mac",
     progress,
+    proofValues: {},
     terminal: [],
     runningAction: null,
     runningRunId: null,

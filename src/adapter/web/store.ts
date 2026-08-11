@@ -1,8 +1,13 @@
 import { isLocale, type Locale } from "../../copy/index.ts";
+import { findCapabilities } from "../../domain/card.ts";
 import { K, type MessageKey } from "../../domain/copy-keys.ts";
 import type { ProgressState } from "../../domain/progress.ts";
 import { api, ApiError, type ServerEvent, type StateBody, type WireProgress } from "./api.ts";
-import type { AppState, TerminalEntry } from "./viewmodel/card-model.ts";
+import {
+  matchesPasteProof,
+  type AppState,
+  type TerminalEntry,
+} from "./viewmodel/card-model.ts";
 
 // 唯一可變狀態。畫面完全由它推導——沒有任何「記得按順序呼叫重畫」的規則，
 // 那類時序 bug 在這個結構下寫不出來（前一代最大的一類）。
@@ -15,6 +20,8 @@ export interface Store {
   cancel(): Promise<void>;
   sendInput(text: string): Promise<void>;
   toggleEye(id: string, checked: boolean): Promise<void>;
+  submitProof(id: string, text: string): Promise<void>;
+  loadWalkthrough(id: string): Promise<unknown>;
   skip(): Promise<void>;
   goNext(): Promise<void>;
   setLocale(locale: Locale): void;
@@ -40,6 +47,7 @@ export function createStore(): Store {
     // 步驟給 Windows 的學生看。
     platform: "other",
     progress: emptyProgress(),
+    proofValues: {},
     terminal: [],
     runningAction: null,
     runningRunId: null,
@@ -175,6 +183,19 @@ export function createStore(): Store {
 
     async toggleEye(id, checked) {
       await api.eyeCheck(id, checked);
+    },
+
+    async submitProof(id, text) {
+      set({ proofValues: { ...state.proofValues, [id]: text } });
+      const proof = state.cards
+        .flatMap((card) => findCapabilities(card, "paste-proof"))
+        .find((capability) => capability.id === id);
+
+      await api.eyeCheck(id, matchesPasteProof(text, proof!.expected));
+    },
+
+    loadWalkthrough(id) {
+      return api.walkthrough(state.locale, id);
     },
 
     async skip() {

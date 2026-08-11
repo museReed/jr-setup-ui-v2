@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { claudeCodeCard } from "../domain/catalog.ts";
+import { claudeCodeCard } from "../domain/cards/claude-code.ts";
 import type { CheckStatus } from "../domain/check.ts";
 import type { EnvProbe, TerminalOpener } from "./ports.ts";
 import { verifyInTerminal } from "./verify-in-terminal.ts";

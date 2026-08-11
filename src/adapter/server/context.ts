@@ -1,6 +1,6 @@
 import type { Card } from "../../domain/card.ts";
+import { CARDS } from "../../domain/cards/index.ts";
 import type { Platform } from "../../domain/platform.ts";
-import { claudeCodeCard, guardrailsCard } from "../../domain/catalog.ts";
 import type {
   Clock,
   EnvProbe,
@@ -45,7 +45,7 @@ export function createServerContext(
   }
 
   return {
-    cards: [claudeCodeCard, guardrailsCard],
+    cards: [...CARDS],
     probe: createEnvProbe(fake, materialsRoot),
     runner: createProcessRunner(fake, materialsRoot),
     terminal: createTerminalOpener(fake),

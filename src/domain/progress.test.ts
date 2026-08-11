@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { claudeCodeCard, guardrailsCard } from "./catalog.ts";
+import { claudeCodeCard } from "./cards/claude-code.ts";
+import { guardrailsCard } from "./cards/guardrails.ts";
 import type { CheckId, CheckStatus } from "./check.ts";
 import {
   canAdvance,

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { claudeCodeCard } from "../domain/catalog.ts";
+import { claudeCodeCard } from "../domain/cards/claude-code.ts";
 import { checkEnvironment } from "./check-environment.ts";
 import type { EnvProbe } from "./ports.ts";
 

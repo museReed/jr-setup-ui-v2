@@ -1,10 +1,9 @@
 import { useEffect, useState } from "preact/hooks";
 
-import { api } from "../api.ts";
 import { copy } from "../../../copy/index.ts";
 import { K } from "../../../domain/copy-keys.ts";
 import type { ButtonModel, ChecklistRow } from "../viewmodel/card-model.ts";
-import { cardModel, matchesPasteProof } from "../viewmodel/card-model.ts";
+import { cardModel } from "../viewmodel/card-model.ts";
 import type { Store } from "../store.ts";
 import {
   Button,
@@ -24,7 +23,6 @@ export function App({ store }: { store: Store }) {
   const [, bump] = useState(0);
   // 彈窗開著沒開著是純呈現狀態，沒有領域意義——不進 store。
   const [walkthrough, setWalkthrough] = useState<WalkthroughDoc | null>(null);
-  const [pasteValues, setPasteValues] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const unsubscribe = store.subscribe(() => bump((n) => n + 1));
@@ -55,7 +53,7 @@ export function App({ store }: { store: Store }) {
   );
 
   const rowView = (row: ChecklistRow) => {
-    const expected = row.expected;
+    const proofValue = row.proofValue;
     const walkthroughId = row.walkthroughId;
 
     return (
@@ -68,20 +66,17 @@ export function App({ store }: { store: Store }) {
         hint={row.hint}
         actions={row.buttons.length === 0 ? undefined : row.buttons.map(action)}
         proofInput={
-          expected === undefined
+          proofValue === undefined
             ? undefined
             : {
-                value: pasteValues[row.id] ?? "",
-                onInput: (value) => {
-                  setPasteValues((current) => ({ ...current, [row.id]: value }));
-                  void store.toggleEye(row.id, matchesPasteProof(value, expected));
-                },
+                value: proofValue,
+                onInput: (value) => void store.submitProof(row.id, value),
               }
         }
         onHelp={
           walkthroughId === undefined
             ? undefined
-            : () => void openWalkthrough(walkthroughId, state.locale, setWalkthrough)
+            : () => void openWalkthrough(store, walkthroughId, setWalkthrough)
         }
         helpLabel={t(K.card.help)}
         onChange={
@@ -185,9 +180,9 @@ export function App({ store }: { store: Store }) {
 }
 
 async function openWalkthrough(
+  store: Store,
   id: string,
-  locale: string,
   show: (doc: WalkthroughDoc) => void,
 ): Promise<void> {
-  show((await api.walkthrough(locale, id)) as WalkthroughDoc);
+  show((await store.loadWalkthrough(id)) as WalkthroughDoc);
 }
