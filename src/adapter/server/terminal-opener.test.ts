@@ -6,7 +6,14 @@ import { test } from "node:test";
 
 import { fileURLToPath } from "node:url";
 
-import { createTerminalOpener, writeLauncher } from "./terminal-opener.ts";
+import { chainedCommand, createTerminalOpener, writeLauncher } from "./terminal-opener.ts";
+
+// ⚠️ Windows PowerShell 5.1 不認 `&&`——指令會被它自己的剖析器擋在門口，而副產物裡那段
+// 錯誤看起來很像「有被擋」。分不出「hook 生效」與「hook 根本沒被叫」的驗證題等於沒有。
+test("Windows 的攔截器題目用 PowerShell 5.1 接受的分號，macOS 維持 &&", () => {
+  assert.equal(chainedCommand("win32"), "echo a; echo b");
+  assert.equal(chainedCommand("darwin"), "echo a && echo b");
+});
 
 // 這一題守的是**整類**錯誤，不是單一個 bug：任何一處 spawn 忘了給 env，開出去的視窗
 // 就繼承伺服器啟動當下那份 PATH——Windows 上剛裝好的 claude 在那個視窗裡叫不動，而
