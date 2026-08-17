@@ -7,7 +7,6 @@ import {
   type CardView,
   type CheckDisplay,
 } from "../../../usecase/describe-progress.ts";
-import type { BadgeTone, TerminalLine } from "../view/ds/index.ts";
 import type { AppState } from "./app-state.ts";
 import { findAuthLink, type ButtonModel } from "./button-model.ts";
 import {
@@ -15,7 +14,14 @@ import {
   type ChecklistModel,
   type PromptModel,
 } from "./checklist-model.ts";
-import { recentRawOutput, TERMINAL_TONE } from "./terminal-model.ts";
+import {
+  recentRawOutput,
+  TERMINAL_TONE,
+  type TerminalLine,
+} from "./terminal-model.ts";
+
+// 不 import View 的型別，讓 Presenter 保持獨立；若多吐 View 畫不出的語氣，typecheck 會在傳遞處報錯。
+export type BadgeTone = "neutral" | "ok" | "warn" | "bad";
 
 export interface CardViewModel {
   readonly title: string;

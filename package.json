@@ -9,12 +9,14 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "node --test \"src/**/*.test.ts\"",
+    "depcruise": "depcruise src --config .dependency-cruiser.cjs",
     "build": "vite build",
     "start": "node src/adapter/server/main.ts"
   },
   "devDependencies": {
     "@preact/preset-vite": "^2.10.6",
     "@types/node": "^22.10.2",
+    "dependency-cruiser": "^16.10.4",
     "typescript": "^5.7.2",
     "vite": "^8.2.1"
   },

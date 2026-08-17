@@ -29,6 +29,8 @@ jobs:
 
       - run: npm test
 
+      - run: npm run depcruise
+
       # build 也要跑：typecheck 過不代表 vite 打包得起來（JSX transform、
       # 靜態資源路徑這類問題只有真的打包才看得到）。
       - run: npm run build

@@ -5,9 +5,11 @@ import type {
   CheckView,
   ViewCapability,
 } from "../../../usecase/describe-progress.ts";
-import type { ButtonTone } from "../view/ds/index.ts";
 import type { AppState } from "./app-state.ts";
 import type { TerminalEntry } from "./terminal-model.ts";
+
+// 不 import View 的型別，讓 Presenter 保持獨立；若多吐 View 畫不出的語氣，typecheck 會在傳遞處報錯。
+export type ButtonTone = "accent" | "success";
 
 export interface ButtonModel {
   readonly action: string;

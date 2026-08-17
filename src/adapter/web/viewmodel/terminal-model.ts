@@ -1,6 +1,14 @@
 // 終端元件負責呈現語意化訊息與保留最近幾輪原始輸出。
 import type { MessageKey } from "../../../domain/copy-keys.ts";
-import type { TerminalTone } from "../view/ds/index.ts";
+
+// 不 import View 的型別，讓 Presenter 保持獨立；若多吐 View 畫不出的語氣，typecheck 會在傳遞處報錯。
+export type TerminalTone = "plain" | "ok" | "err" | "dim" | "prompt";
+
+// 不 import View 的行資料型別，讓 Presenter 保持獨立；若 tone 超出 View 能畫的語氣，typecheck 會在傳遞處報錯。
+export type TerminalLine = {
+  readonly text: string;
+  readonly tone: TerminalTone;
+};
 
 // 終端裡的一行「發生了什麼」。
 //
