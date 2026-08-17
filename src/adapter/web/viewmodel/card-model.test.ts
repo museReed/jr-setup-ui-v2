@@ -9,8 +9,10 @@ import { codexCliCard } from "../../../domain/cards/codex-cli.ts";
 import { CARDS } from "../../../domain/cards/index.ts";
 import type { CheckId, CheckStatus } from "../../../domain/check.ts";
 import { K } from "../../../domain/copy-keys.ts";
-import type { ProgressState } from "../../../domain/progress.ts";
-import { cardModel, matchesPasteProof, type AppState } from "./card-model.ts";
+import { describeCards } from "../../../usecase/describe-progress.ts";
+import type { AppState } from "./app-state.ts";
+import { cardModel } from "./card-model.ts";
+import { matchesPasteProof } from "./checklist-model.ts";
 
 // ViewModel 是純函式：不碰 DOM、不發請求，所以在 Node 裡直接測得動。
 // 前一代這些判斷住在 2525 行的接線層裡，只能靠 regex 掃原始碼守。
@@ -236,10 +238,7 @@ test("授權網址被 ANSI 色碼包住時不會把 escape 序列或尾端標點
 
 test("Codex 卡使用 OpenAI logo，而 Claude 卡保留 Claude logo", () => {
   const claude = cardModel(appState({ claude: "ok" }, {}));
-  const codex = cardModel({
-    ...appState({ codex: "ok" }, {}),
-    cards: [codexCliCard],
-  });
+  const codex = cardModel(appState({ codex: "ok" }, {}, [codexCliCard]));
 
   assert.equal(codex.logoId, "logo-openai");
   assert.equal(claude.logoId, "logo-claude");
@@ -247,8 +246,7 @@ test("Codex 卡使用 OpenAI logo，而 Claude 卡保留 Claude logo", () => {
 
 test("Codex 登入連結使用瀏覽器未開時的 OpenAI 備援文案", () => {
   const model = cardModel({
-    ...appState({ codex: "ok", "codex-auth": "missing" }, {}),
-    cards: [codexCliCard],
+    ...appState({ codex: "ok", "codex-auth": "missing" }, {}, [codexCliCard]),
     terminal: [
       {
         source: "output",
@@ -280,8 +278,9 @@ function appState(
     attempted?: CheckId[];
     eyeChecked?: string[];
   },
+  cards = [claudeCodeCard],
 ): AppState {
-  const progress: ProgressState = {
+  const progress: Parameters<typeof describeCards>[1] = {
     statuses: new Map(Object.entries(statuses)),
     verified: new Set(sets.verified ?? []),
     attempted: new Set(sets.attempted ?? []),
@@ -291,11 +290,10 @@ function appState(
   };
 
   return {
-    cards: [claudeCodeCard],
+    cards: describeCards(cards, progress),
     activeIndex: 0,
     locale: "zh-TW",
     platform: "mac",
-    progress,
     proofValues: {},
     terminal: [],
     runningAction: null,

@@ -1,8 +1,8 @@
 import type { ServerResponse } from "node:http";
 
 import type { MessageKey } from "../../domain/copy-keys.ts";
+import type { CardView } from "../../usecase/describe-progress.ts";
 import type { RunEvent } from "../../usecase/ports.ts";
-import type { WireProgress } from "./state-store.ts";
 
 // 網頁要即時知道三件事：指令吐了一行字、我們自己要講一句話、狀態變了。
 //
@@ -12,7 +12,7 @@ export type ServerEvent =
   | { type: "run-line"; runId: string; event: RunEvent }
   | { type: "notice"; runId: string; messageKey: MessageKey; failed: boolean }
   | { type: "run-done"; runId: string; success: boolean }
-  | { type: "state"; progress: WireProgress };
+  | { type: "state"; cards: CardView[] };
 
 export interface EventBus {
   subscribe(response: ServerResponse): void;

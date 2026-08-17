@@ -1,14 +1,11 @@
 import { isLocale, type Locale } from "../../copy/index.ts";
-import { findCapabilities } from "../../domain/card.ts";
 import { K, type MessageKey } from "../../domain/copy-keys.ts";
-import type { ProgressState } from "../../domain/progress.ts";
-import { api, ApiError, type ServerEvent, type StateBody, type WireProgress } from "./api.ts";
+import { findCapabilities } from "../../usecase/describe-progress.ts";
+import { api, ApiError, type ServerEvent, type StateBody } from "./api.ts";
 import { CARD_PARAM, resolveCardIndex } from "./viewmodel/card-route.ts";
-import {
-  matchesPasteProof,
-  type AppState,
-  type TerminalEntry,
-} from "./viewmodel/card-model.ts";
+import type { AppState } from "./viewmodel/app-state.ts";
+import { matchesPasteProof } from "./viewmodel/checklist-model.ts";
+import type { TerminalEntry } from "./viewmodel/terminal-model.ts";
 
 // 唯一可變狀態。畫面完全由它推導——沒有任何「記得按順序呼叫重畫」的規則，
 // 那類時序 bug 在這個結構下寫不出來（前一代最大的一類）。
@@ -68,7 +65,6 @@ export function createStore(): Store {
     // 伺服器回報之前先當「其他」——寧可多顯示一條共通的，也不要錯把 mac 的
     // 步驟給 Windows 的學生看。
     platform: "other",
-    progress: emptyProgress(),
     proofValues: {},
     terminal: [],
     runningAction: null,
@@ -85,7 +81,7 @@ export function createStore(): Store {
   };
 
   const applyBody = (body: StateBody): void => {
-    set({ cards: body.cards, platform: body.platform, progress: hydrate(body.progress) });
+    set({ cards: body.cards, platform: body.platform });
   };
 
   // store 只記「發生了什麼」，不記顏色也不記翻好的字——兩者都是呈現決定。
@@ -95,7 +91,7 @@ export function createStore(): Store {
 
   api.stream((event: ServerEvent) => {
     if (event.type === "state") {
-      set({ progress: hydrate(event.progress) });
+      set({ cards: event.cards });
       return;
     }
 
@@ -215,7 +211,7 @@ export function createStore(): Store {
     async submitProof(id, text) {
       set({ proofValues: { ...state.proofValues, [id]: text } });
       const proof = state.cards
-        .flatMap((card) => findCapabilities(card, "paste-proof"))
+        .flatMap((card) => findCapabilities(card.capabilities, "paste-proof"))
         .find((capability) => capability.id === id);
 
       await api.eyeCheck(id, matchesPasteProof(text, proof!.expected));
@@ -311,26 +307,4 @@ export function createStore(): Store {
 
     set({ runningAction: null, runningRunId: null, runningAcceptsInput: false });
   }
-}
-
-function hydrate(wire: WireProgress): ProgressState {
-  return {
-    statuses: new Map(wire.statuses),
-    verified: new Set(wire.verified),
-    attempted: new Set(wire.attempted),
-    eyeChecked: new Set(wire.eyeChecked),
-    visited: new Set(wire.visited),
-    skipped: new Set(wire.skipped),
-  };
-}
-
-function emptyProgress(): ProgressState {
-  return {
-    statuses: new Map(),
-    verified: new Set(),
-    attempted: new Set(),
-    eyeChecked: new Set(),
-    visited: new Set(),
-    skipped: new Set(),
-  };
 }

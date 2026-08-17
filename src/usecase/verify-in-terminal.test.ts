@@ -64,6 +64,8 @@ function fakes(completed: boolean): {
         opened = true;
         return { completed };
       },
+      // 這條驗證路徑不會用到「只開窗不等結論」那一支，但介面要完整。
+      async openWorkWindow() {},
     },
     probe: {
       async probe(checkId) {

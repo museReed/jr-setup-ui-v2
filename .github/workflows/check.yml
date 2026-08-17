@@ -1,0 +1,36 @@
+# 這個 repo 的第一個自動檢查。
+#
+# 在此之前，typecheck 與測試只有人記得跑才會跑——壞掉不會有人知道。
+# 這裡跑的四條指令跟本機一模一樣，沒有「只有 CI 才有」的魔法。
+name: check
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # package.json 的 engines 要求 >=22.18。
+          node-version: "22"
+          cache: npm
+
+      # ci 不是 install：它照 package-lock 裝，版本對不上就直接失敗。
+      - run: npm ci
+
+      - run: npm run typecheck
+
+      - run: npm test
+
+      - run: npm run depcruise
+
+      # build 也要跑：typecheck 過不代表 vite 打包得起來（JSX transform、
+      # 靜態資源路徑這類問題只有真的打包才看得到）。
+      - run: npm run build

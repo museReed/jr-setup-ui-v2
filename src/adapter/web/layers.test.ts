@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { beforeEach, test } from "node:test";
 
 import { FULLSCREEN_PROOF, claudeCodeCard } from "../../domain/cards/claude-code.ts";
+import { describeCards } from "../../usecase/describe-progress.ts";
 import type { StateBody } from "./api.ts";
 import { createStore } from "./store.ts";
 
@@ -29,7 +30,7 @@ test("View 不直接 import api.ts", () => {
   }
 });
 
-test("View 不 import domain/progress.ts 判定完成狀態", () => {
+test("View 不 import domain 的 progress.ts 判定完成狀態", () => {
   for (const { file, source } of VIEW_SOURCES) {
     assert.doesNotMatch(
       source,
@@ -54,16 +55,15 @@ interface RequestRecord {
 const requests: RequestRecord[] = [];
 const walkthrough = { title: "Fullscreen" };
 const stateBody: StateBody = {
-  cards: [claudeCodeCard],
+  cards: describeCards([claudeCodeCard], {
+    statuses: new Map(),
+    verified: new Set(),
+    attempted: new Set(),
+    eyeChecked: new Set(),
+    visited: new Set(),
+    skipped: new Set(),
+  }),
   platform: "mac",
-  progress: {
-    statuses: [],
-    verified: [],
-    attempted: [],
-    eyeChecked: [],
-    visited: [],
-    skipped: [],
-  },
 };
 
 beforeEach(() => {

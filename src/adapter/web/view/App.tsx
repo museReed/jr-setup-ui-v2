@@ -2,8 +2,9 @@ import { useEffect, useState } from "preact/hooks";
 
 import { copy } from "../../../copy/index.ts";
 import { K } from "../../../domain/copy-keys.ts";
-import type { ButtonModel, ChecklistRow } from "../viewmodel/card-model.ts";
+import type { ButtonModel } from "../viewmodel/button-model.ts";
 import { cardModel } from "../viewmodel/card-model.ts";
+import type { ChecklistRow } from "../viewmodel/checklist-model.ts";
 import type { Store } from "../store.ts";
 import {
   Button,

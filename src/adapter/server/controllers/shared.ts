@@ -1,5 +1,15 @@
+import type { Platform } from "../../../domain/platform.ts";
 import { checkEnvironment } from "../../../usecase/check-environment.ts";
+import {
+  describeCards,
+  type CardView,
+} from "../../../usecase/describe-progress.ts";
 import type { ServerContext } from "../context.ts";
+
+export interface StateBody {
+  cards: CardView[];
+  platform: Platform;
+}
 
 // 重新探測一次，把結果寫回 store，然後告訴所有連著的網頁。
 //
@@ -12,9 +22,15 @@ export async function refreshChecks(ctx: ServerContext): Promise<void> {
     }
   }
 
-  ctx.bus.publish({ type: "state", progress: ctx.store.wire() });
+  ctx.bus.publish({
+    type: "state",
+    cards: describeCards(ctx.cards, ctx.store.snapshot()),
+  });
 }
 
-export function stateBody(ctx: ServerContext): unknown {
-  return { cards: ctx.cards, platform: ctx.platform, progress: ctx.store.wire() };
+export function stateBody(ctx: ServerContext): StateBody {
+  return {
+    cards: describeCards(ctx.cards, ctx.store.snapshot()),
+    platform: ctx.platform,
+  };
 }

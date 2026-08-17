@@ -1,22 +1,11 @@
-import type { Card } from "../../domain/card.ts";
-import type { CheckId, CheckStatus } from "../../domain/check.ts";
 import type { MessageKey } from "../../domain/copy-keys.ts";
 import type { Platform } from "../../domain/platform.ts";
+import type { CardView } from "../../usecase/describe-progress.ts";
 import type { RunEvent } from "../../usecase/ports.ts";
 
-export interface WireProgress {
-  statuses: [CheckId, CheckStatus][];
-  verified: CheckId[];
-  attempted: CheckId[];
-  eyeChecked: string[];
-  visited: string[];
-  skipped: string[];
-}
-
 export interface StateBody {
-  cards: Card[];
+  cards: CardView[];
   platform: Platform;
-  progress: WireProgress;
 }
 
 export type ServerEvent =
@@ -24,7 +13,7 @@ export type ServerEvent =
   // 伺服器自己的話只送代號，不送翻好的字——它不必知道使用者用哪個語言。
   | { type: "notice"; runId: string; messageKey: MessageKey; failed: boolean }
   | { type: "run-done"; runId: string; success: boolean }
-  | { type: "state"; progress: WireProgress };
+  | { type: "state"; cards: CardView[] };
 
 // 伺服器拒絕的理由，帶著代號一路傳到呼叫端。
 //
