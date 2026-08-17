@@ -36,6 +36,12 @@ export interface TerminalOpener {
   // signal：學生把那個視窗關掉時，等待要停得下來。沒有它就得等滿逾時（三到四分鐘），
   // 而那段時間畫面上每顆按鈕都是灰的——想重跑也按不動。
   open(action: string, signal?: AbortSignal): Promise<TerminalOutcome>;
+
+  // 只把工作視窗開起來，不等結論——所以沒有 TerminalOutcome 也沒有 signal。
+  //
+  // ⚠️ 這一條要走 port，不能讓 controller 直接呼叫 adapter 的函式。開視窗是跨程序
+  // 的事，controller 自己做的話它就同時是轉接層與執行者，測試也沒有地方換掉它。
+  openWorkWindow(action: string): Promise<void>;
 }
 
 export interface Clock {

@@ -30,7 +30,7 @@ type VerifyCli = "claude" | "codex";
 
 // verify 要等一個結論；這兩顆只是幫學生把工作視窗開起來。沿用 verify 的等待會讓
 // 學生留在視窗裡操作時，網頁上每顆按鈕灰掉三分鐘。
-export async function openWindow(action: string): Promise<void> {
+async function openWindow(action: string): Promise<void> {
   if (action !== "fullscreen-open" && action !== "fullscreen-proof") {
     throw new Error(`不認得的開窗動作：${action}`);
   }
@@ -42,6 +42,8 @@ export async function openWindow(action: string): Promise<void> {
 
 export function createTerminalOpener(fake: FakeEnv | null): TerminalOpener {
   return {
+    openWorkWindow: openWindow,
+
     async open(action, signal) {
       // 已經取消了就別開視窗。取消與按下之間只有幾百毫秒，但那幾百毫秒開出去的
       // 視窗會活下來——學生取消了卻多一個視窗跳出來，比沒取消還糟。

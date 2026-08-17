@@ -1,9 +1,9 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 
 import { findCapabilities } from "../../../domain/card.ts";
+import { openWorkWindow } from "../../../usecase/open-work-window.ts";
 import type { ServerContext } from "../context.ts";
 import { readJson, readString, sendJson } from "../respond.ts";
-import { openWindow } from "../terminal-opener.ts";
 import { stateBody } from "./shared.ts";
 
 export async function setEyeCheck(
@@ -34,20 +34,16 @@ export async function openTerminalWindow(
   response: ServerResponse,
 ): Promise<void> {
   const action = readString(await readJson(request), "action");
-  const declared = ctx.cards.some((card) =>
-    findCapabilities(card, "manual-step").some(
-      (capability) => capability.action === action,
-    ),
-  );
 
-  if (action === null || !declared) {
+  // 這條只負責把視窗開起來，不像 verify 要等結論；因此不發 run-done，也不建立
+  // running action，學生可以一直留在新視窗工作而不會卡住網頁。
+  const result = await openWorkWindow(action, ctx.cards, ctx.terminal);
+
+  if (!result.ok) {
     sendJson(response, 400, { error: "這張卡沒有宣告這個開窗動作" });
     return;
   }
 
-  // 這條只負責把視窗開起來，不像 verify 要等結論；因此不發 run-done，也不建立
-  // running action，學生可以一直留在新視窗工作而不會卡住網頁。
-  await openWindow(action);
   sendJson(response, 200, { ok: true });
 }
 
