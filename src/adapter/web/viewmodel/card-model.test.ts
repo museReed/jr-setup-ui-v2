@@ -10,7 +10,9 @@ import { CARDS } from "../../../domain/cards/index.ts";
 import type { CheckId, CheckStatus } from "../../../domain/check.ts";
 import { K } from "../../../domain/copy-keys.ts";
 import { describeCards } from "../../../usecase/describe-progress.ts";
-import { cardModel, matchesPasteProof, type AppState } from "./card-model.ts";
+import type { AppState } from "./app-state.ts";
+import { cardModel } from "./card-model.ts";
+import { matchesPasteProof } from "./checklist-model.ts";
 
 // ViewModel 是純函式：不碰 DOM、不發請求，所以在 Node 裡直接測得動。
 // 前一代這些判斷住在 2525 行的接線層裡，只能靠 regex 掃原始碼守。

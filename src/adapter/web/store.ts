@@ -3,11 +3,9 @@ import { K, type MessageKey } from "../../domain/copy-keys.ts";
 import { findCapabilities } from "../../usecase/describe-progress.ts";
 import { api, ApiError, type ServerEvent, type StateBody } from "./api.ts";
 import { CARD_PARAM, resolveCardIndex } from "./viewmodel/card-route.ts";
-import {
-  matchesPasteProof,
-  type AppState,
-  type TerminalEntry,
-} from "./viewmodel/card-model.ts";
+import type { AppState } from "./viewmodel/app-state.ts";
+import { matchesPasteProof } from "./viewmodel/checklist-model.ts";
+import type { TerminalEntry } from "./viewmodel/terminal-model.ts";
 
 // 唯一可變狀態。畫面完全由它推導——沒有任何「記得按順序呼叫重畫」的規則，
 // 那類時序 bug 在這個結構下寫不出來（前一代最大的一類）。
