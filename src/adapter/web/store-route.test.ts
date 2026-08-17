@@ -7,19 +7,47 @@ import type { StateBody } from "./api.ts";
 // 不是 API 本身，所以回應固定。
 const stateBody: StateBody = {
   cards: [
-    { id: "claude", sectionId: "env", labelKey: "card.claude", logoId: "logo-claude", checks: [], capabilities: [] },
-    { id: "codex", sectionId: "env", labelKey: "card.codex", logoId: "logo-openai", checks: [], capabilities: [] },
-    { id: "guardrails", sectionId: "rules", labelKey: "card.guardrails", logoId: "logo-claude", checks: [], capabilities: [] },
+    {
+      id: "claude",
+      sectionId: "env",
+      labelKey: "card.claude",
+      logoId: "logo-claude",
+      display: "untouched",
+      complete: false,
+      canAdvance: false,
+      canSkip: false,
+      visited: false,
+      checks: [],
+      capabilities: [],
+    },
+    {
+      id: "codex",
+      sectionId: "env",
+      labelKey: "card.codex",
+      logoId: "logo-openai",
+      display: "untouched",
+      complete: false,
+      canAdvance: false,
+      canSkip: false,
+      visited: false,
+      checks: [],
+      capabilities: [],
+    },
+    {
+      id: "guardrails",
+      sectionId: "rules",
+      labelKey: "card.guardrails",
+      logoId: "logo-claude",
+      display: "untouched",
+      complete: false,
+      canAdvance: false,
+      canSkip: false,
+      visited: false,
+      checks: [],
+      capabilities: [],
+    },
   ],
   platform: "mac",
-  progress: {
-    statuses: [],
-    verified: [],
-    attempted: [],
-    eyeChecked: [],
-    visited: [],
-    skipped: [],
-  },
 };
 
 const visited: string[] = [];

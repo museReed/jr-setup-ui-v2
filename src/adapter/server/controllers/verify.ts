@@ -8,6 +8,7 @@ import { verifyInTerminal } from "../../../usecase/verify-in-terminal.ts";
 import type { ServerContext } from "../context.ts";
 import { readJson, readString, sendJson } from "../respond.ts";
 import { verifyHookBehavior } from "../verify-hook.ts";
+import { stateBody } from "./shared.ts";
 
 // 自動驗證：程式自己問得到答案的那幾題。
 //
@@ -66,7 +67,7 @@ export async function startVerify(
 
   // 「跑過」在按下去的當下就記——學生可能什麼都沒做（canAdvance 認它，isComplete 不認）。
   ctx.store.markAttempted(check.id);
-  ctx.bus.publish({ type: "state", progress: ctx.store.wire() });
+  ctx.bus.publish({ type: "state", cards: stateBody(ctx).cards });
   sendJson(response, 200, { started: true });
 
   void (capability.via === "terminal"
@@ -116,7 +117,7 @@ async function runAutoVerify(
   }
 
   ctx.store.markVerified(checkId, verdict.passed);
-  ctx.bus.publish({ type: "state", progress: ctx.store.wire() });
+  ctx.bus.publish({ type: "state", cards: stateBody(ctx).cards });
   ctx.bus.publish({ type: "run-done", runId: checkId, success: verdict.passed });
 }
 
@@ -150,7 +151,7 @@ async function runTerminalVerify(
 
   const status = checks.find((check) => check.id === checkId)?.status;
   ctx.store.markVerified(checkId, status === "ok");
-  ctx.bus.publish({ type: "state", progress: ctx.store.wire() });
+  ctx.bus.publish({ type: "state", cards: stateBody(ctx).cards });
   ctx.bus.publish({ type: "run-done", runId: checkId, success: status === "ok" });
 }
 

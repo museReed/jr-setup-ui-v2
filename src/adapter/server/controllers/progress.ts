@@ -24,7 +24,7 @@ export async function setEyeCheck(
   }
 
   ctx.store.setEyeChecked(id, body["checked"] === true);
-  ctx.bus.publish({ type: "state", progress: ctx.store.wire() });
+  ctx.bus.publish({ type: "state", cards: stateBody(ctx).cards });
   sendJson(response, 200, stateBody(ctx));
 }
 
@@ -64,7 +64,7 @@ export async function skipCard(
   }
 
   ctx.store.skip(cardId);
-  ctx.bus.publish({ type: "state", progress: ctx.store.wire() });
+  ctx.bus.publish({ type: "state", cards: stateBody(ctx).cards });
   sendJson(response, 200, stateBody(ctx));
 }
 
@@ -81,6 +81,6 @@ export async function visitCard(
   }
 
   ctx.store.visit(cardId);
-  ctx.bus.publish({ type: "state", progress: ctx.store.wire() });
+  ctx.bus.publish({ type: "state", cards: stateBody(ctx).cards });
   sendJson(response, 200, stateBody(ctx));
 }

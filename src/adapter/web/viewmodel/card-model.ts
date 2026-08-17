@@ -1,17 +1,15 @@
-import type { Capability, Card, CardCheck } from "../../../domain/card.ts";
-import { findCapabilities, findCapability } from "../../../domain/card.ts";
-import type { CheckStatus } from "../../../domain/check.ts";
 import { K, type MessageKey } from "../../../domain/copy-keys.ts";
 import { copy, type Locale } from "../../../copy/index.ts";
 import type { Platform } from "../../../domain/platform.ts";
-import type { CardDisplayState, ProgressState } from "../../../domain/progress.ts";
 import {
-  canAdvance,
-  canSkip,
-  cardDisplayState,
-  effectiveStatus,
-  isComplete,
-} from "../../../domain/progress.ts";
+  findCapabilities,
+  findCapability,
+  type CardDisplay,
+  type CardView,
+  type CheckDisplay,
+  type CheckView,
+  type ViewCapability,
+} from "../../../usecase/describe-progress.ts";
 import type { BadgeTone } from "../view/ds/Card.tsx";
 import type {
   ButtonTone,
@@ -41,14 +39,13 @@ export type TerminalEntry =
     };
 
 export interface AppState {
-  readonly cards: readonly Card[];
+  readonly cards: readonly CardView[];
   readonly activeIndex: number;
   // 語言是狀態的一部分，不是模組層級的全域值：切語言就是換一次 state，畫面照
   // 原本那條路重新推導出來，不需要任何「切完記得重畫」的規則。
   readonly locale: Locale;
   // 這台機器是什麼。教學內容的平台過濾靠它（見 walkthrough-model）。
   readonly platform: Platform;
-  readonly progress: ProgressState;
   readonly proofValues: Readonly<Record<string, string>>;
   readonly terminal: readonly TerminalEntry[];
   readonly runningAction: string | null;
@@ -122,7 +119,7 @@ export interface CardViewModel {
   readonly position: { readonly index: number; readonly total: number };
   readonly hasNext: boolean;
   readonly logoId: string;
-  readonly display: CardDisplayState;
+  readonly display: CardDisplay;
   readonly badge: { readonly text: string; readonly tone: BadgeTone };
   readonly checklist: ChecklistModel;
   // 卡片級的按鈕只剩「再 check 一次」——它真的作用在整張卡上。
@@ -142,14 +139,14 @@ export interface CardViewModel {
   readonly advanceHint: string;
 }
 
-const BADGES: Readonly<Record<CardDisplayState, { key: MessageKey; tone: BadgeTone }>> = {
+const BADGES: Readonly<Record<CardDisplay, { key: MessageKey; tone: BadgeTone }>> = {
   untouched: { key: K.badge.untouched, tone: "neutral" },
   "visited-incomplete": { key: K.badge.visitedIncomplete, tone: "warn" },
   complete: { key: K.badge.complete, tone: "ok" },
   failed: { key: K.badge.failed, tone: "bad" },
 };
 
-const STATUS_HINT: Readonly<Record<CheckStatus, MessageKey>> = {
+const STATUS_HINT: Readonly<Record<CheckDisplay, MessageKey>> = {
   missing: K.status.missing,
   unverified: K.status.unverified,
   ok: K.status.ok,
@@ -165,13 +162,18 @@ const TERMINAL_TONE: Readonly<Record<TerminalEntryKind, TerminalTone>> = {
 };
 
 // 現在停在哪一張。沒有卡片時回一張空的——載入中的那半秒也要畫得出東西。
-export function activeCard(state: AppState): Card {
+export function activeCard(state: AppState): CardView {
   return (
     state.cards[state.activeIndex] ?? {
       id: "",
       sectionId: "",
       labelKey: K.card.checklistTitle,
       logoId: "",
+      display: "untouched",
+      complete: false,
+      canAdvance: false,
+      canSkip: false,
+      visited: false,
       checks: [],
       capabilities: [],
     }
@@ -180,27 +182,25 @@ export function activeCard(state: AppState): Card {
 
 export function cardModel(state: AppState): CardViewModel {
   const card = activeCard(state);
-  const { progress } = state;
-  const t = (key: MessageKey): string => copy(state.locale, key);
-  const display = cardDisplayState(card, progress);
+  const t = (key: string): string => copy(state.locale, key as MessageKey);
   const checklist = checklistModel(state);
-  const advance = canAdvance(card, progress);
+  const advance = card.canAdvance;
   const login = card.checks
-    .map((check) => findCapability(check, "login"))
+    .map((check) => findCapability(check.capabilities, "login"))
     .find((capability) => capability !== undefined);
 
-  const badge = BADGES[display];
+  const badge = BADGES[card.display];
 
   return {
     title: t(card.labelKey),
     position: { index: state.activeIndex + 1, total: state.cards.length },
     hasNext: state.activeIndex + 1 < state.cards.length,
     logoId: card.logoId,
-    display,
+    display: card.display,
     badge: { text: t(badge.key), tone: badge.tone },
     checklist,
     cardButtons:
-      findCapability(card, "recheck") === undefined
+      findCapability(card.capabilities, "recheck") === undefined
         ? []
         : [
             {
@@ -233,9 +233,9 @@ export function cardModel(state: AppState): CardViewModel {
         }
       : null,
     canAdvance: advance,
-    canSkip: canSkip(card, progress),
+    canSkip: card.canSkip,
     advanceHint: t(
-      isComplete(card, progress)
+      card.complete
         ? K.card.advanceDone
         : advance
           ? K.card.advanceLoose
@@ -247,11 +247,10 @@ export function cardModel(state: AppState): CardViewModel {
 // 程式判定的格與學生完成的格排在同一張清單裡；有 stepId 的格再掛回自己的步驟。
 function checklistModel(state: AppState): ChecklistModel {
   const card = activeCard(state);
-  const { progress } = state;
-  const t = (key: MessageKey): string => copy(state.locale, key);
+  const t = (key: string): string => copy(state.locale, key as MessageKey);
 
   const system = card.checks.map((check): ChecklistRow => {
-    const status = effectiveStatus(check, progress);
+    const status = check.status;
     return {
       id: check.id,
       label: t(check.labelKey),
@@ -279,7 +278,7 @@ function checklistModel(state: AppState): ChecklistModel {
           id: capability.id,
           label: t(capability.promptKey),
           hint: t(capability.detailKey ?? K.hint.manualOnly),
-          checked: progress.eyeChecked.has(capability.id),
+          checked: capability.done,
           readOnly: false,
           verifiedBy: "manual",
           walkthroughId: capability.walkthrough,
@@ -296,7 +295,7 @@ function checklistModel(state: AppState): ChecklistModel {
           id: capability.id,
           label: t(capability.promptKey),
           hint: t(capability.detailKey ?? K.hint.manualOnly),
-          checked: progress.eyeChecked.has(capability.id),
+          checked: capability.done,
           readOnly: true,
           verifiedBy: "system",
           walkthroughId: capability.walkthrough,
@@ -312,7 +311,7 @@ function checklistModel(state: AppState): ChecklistModel {
 
   const rows = [...system, ...manual];
   const busy = state.runningAction !== null;
-  const steps = findCapabilities(card, "manual-step").map(
+  const steps = findCapabilities(card.capabilities, "manual-step").map(
     (step): ChecklistStep => ({
       id: step.id,
       title: t(step.titleKey),
@@ -342,11 +341,11 @@ export function matchesPasteProof(pasted: string, expected: string): boolean {
 }
 
 // ⚠️ 只讀 capabilities，不問「這張卡是什麼種類」。
-function rowButtons(check: CardCheck, state: AppState): ButtonModel[] {
-  const { progress, runningAction } = state;
-  const t = (key: MessageKey): string => copy(state.locale, key);
+function rowButtons(check: CheckView, state: AppState): ButtonModel[] {
+  const { runningAction } = state;
+  const t = (key: string): string => copy(state.locale, key as MessageKey);
   const busy = runningAction !== null;
-  const installed = progress.statuses.get(check.id) !== "missing";
+  const installed = check.status !== "missing";
 
   return check.capabilities.flatMap((capability): ButtonModel[] => {
     if (capability.kind === "install") {
@@ -356,7 +355,7 @@ function rowButtons(check: CardCheck, state: AppState): ButtonModel[] {
           label: t(installed ? K.action.reinstall : K.action.install),
           tone: installed ? "success" : "accent",
           disabled: busy,
-          startKey: capability.startKey,
+          startKey: capability.startKey as MessageKey,
         },
       ];
     }
@@ -368,7 +367,7 @@ function rowButtons(check: CardCheck, state: AppState): ButtonModel[] {
           label: t(installed ? K.action.relogin : K.action.login),
           tone: installed ? "success" : "accent",
           disabled: busy,
-          startKey: capability.startKey,
+          startKey: capability.startKey as MessageKey,
         },
       ];
     }
@@ -379,7 +378,7 @@ function rowButtons(check: CardCheck, state: AppState): ButtonModel[] {
       return [
         {
           action: capability.action,
-          label: labelForVerify(capability, progress.verified.has(check.id), state.locale),
+          label: labelForVerify(capability, check.status === "ok", state.locale),
           tone: "accent",
           disabled: busy,
           checkId: check.id,
@@ -392,7 +391,7 @@ function rowButtons(check: CardCheck, state: AppState): ButtonModel[] {
 }
 
 function labelForVerify(
-  capability: Extract<Capability, { kind: "verify" }>,
+  capability: Extract<ViewCapability, { kind: "verify" }>,
   ran: boolean,
   locale: Locale,
 ): string {
